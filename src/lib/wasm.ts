@@ -131,16 +131,50 @@ interface ElementSection {
   elements: Element
 }
 
-interface DataSection {
+interface FunctionBody {
+  locals: { [valueType in ValueType]: number },
+  code: OpCode[]
 }
 
-interface StartSection {
+interface CodeSection {
+  id: 10,
+  code: FunctionBody[]
+}
+
+type Data = {
+  id: 0x00,
+  offsetExpr: OpCode[],
+  bytes: Uint8Array,
+} | {
+  id: 0x01,
+  bytes: Uint8Array,
+} | {
+  id: 0x02,
+  memoryIndex: number,
+  offsetExpr: OpCode[],
+  bytes: []
+}
+
+interface DataSection {
+  id: 11,
+  data: Data[]
+}
+
+interface Export {
+  name: string,
+  kind: ExternalKind,
+  index: number
 }
 
 interface ExportSection {
+  id: 7,
+  exports: Export[]
 }
 
-interface CodeSection {}
+interface StartSection {
+  id: 8,
+  startFunction: number
+}
 
 // Can be extended for any custom section
 interface CustomSection {
@@ -163,8 +197,12 @@ interface Module {
   start: StartSection,
   imports: ImportSection,
   exports: ExportSection,
-  code: CodeSection
+  code: CodeSection,
+  customSections: CustomSection[]
 }
 
+export function emitModule(module: Module) {
+  console.log(module);
+}
 export const VERSION = 0x1;
 export const MAGIC_NUMBER = 0x6d736100;
