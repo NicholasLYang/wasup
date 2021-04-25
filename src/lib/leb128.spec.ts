@@ -1,7 +1,11 @@
 import test from 'ava';
 
-import {toUnsignedLEB128} from "./leb128"
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import leb from "leb128";
+
+import {toUnsignedLEB128} from "./leb128"
+
 
 function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
