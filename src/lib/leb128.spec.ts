@@ -2,10 +2,9 @@ import test from 'ava';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import leb from "leb128";
+import leb from 'leb128';
 
-import {toUnsignedLEB128} from "./leb128"
-
+import { toUnsignedLEB128 } from './leb128';
 
 function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
@@ -16,16 +15,15 @@ test('toUnsignedLEB128', (t) => {
   t.deepEqual(toUnsignedLEB128(127), new Uint8Array([parseInt('01111111', 2)]));
 });
 
-const randomInts = new Set();
+test('toUnsignedLEB128 vs leb128 package', (t) => {
+  const randomInts = new Set();
+  for (let i = 0; i < 1000; i++) {
+    const n = getRandomInt(2_147_483_647);
 
-for (let i = 0; i < 1000; i++) {
-  const n = getRandomInt(2_147_483_647);
+    if (randomInts.has(n)) {
+      continue;
+    }
 
-  if (randomInts.has(n)) {
-    continue;
-  }
-
-  test('toUnsignedLEB128 vs leb128 package: ' + n, (t) => {
     const libBuffer = leb.unsigned.encode(n.toString());
     const myBuffer = toUnsignedLEB128(n);
     t.is(libBuffer.length, myBuffer.length);
@@ -33,8 +31,7 @@ for (let i = 0; i < 1000; i++) {
     for (let i = 0; i < libBuffer.length; i++) {
       t.is(libBuffer[i], myBuffer[i]);
     }
-  });
 
-  randomInts.add(n);
-}
-
+    randomInts.add(n);
+  }
+});
