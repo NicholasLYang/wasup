@@ -24,20 +24,36 @@ export interface TypeSection {
   types: FuncType[];
 }
 
-enum ExternalKind {
+export enum ExternalKind {
   Function = 0,
   Table = 1,
   Memory = 2,
   Global = 3,
 }
 
-interface ImportEntry {
+export interface ImportEntry {
   module: string;
   field: string;
-  kind: ExternalKind;
+  description:
+    | {
+        kind: ExternalKind.Function;
+        typeIndex: number;
+      }
+    | {
+        kind: ExternalKind.Table;
+        tableType: TableType;
+      }
+    | {
+        kind: ExternalKind.Memory;
+        memoryType: ResizableLimits;
+      }
+    | {
+        kind: ExternalKind.Global;
+        globalType: GlobalType;
+      };
 }
 
-interface ImportSection {
+export interface ImportSection {
   id: 2;
   imports: ImportEntry[];
 }
@@ -57,7 +73,7 @@ interface TableSection {
   tables: TableType[];
 }
 
-interface ResizableLimits {
+export interface ResizableLimits {
   initial: number;
   maximum?: number;
 }
@@ -67,10 +83,14 @@ interface MemorySection {
   memories: ResizableLimits[];
 }
 
-interface Global {
+interface GlobalType {
   type: ValueType;
   mutability: boolean;
-  init: OpCode[];
+}
+
+interface Global {
+  type: GlobalType;
+  initExpr: OpCode[];
 }
 
 interface GlobalSection {
