@@ -1,4 +1,5 @@
 import {
+  Element,
   ExternalKind,
   FunctionSection,
   FuncType,
@@ -16,10 +17,9 @@ import {
   Export,
   ExportSection,
   StartSection,
+  ElementSection,
 } from './wasm';
 import { getEncodedSize } from './leb128';
-import Global = WebAssembly.Global;
-import Global = WebAssembly.Global;
 
 function getFuncTypeSize(funcType: FuncType): number {
   return (
@@ -96,7 +96,44 @@ function getExportSize(exportEntry: Export) {
   );
 }
 
+function getElementSize(element: Element) {
+  let elementSize = 1;
+
+  if (element.tableIndex) {
+    elementSize += getEncodedSize(element.tableIndex);
+  }
+
+  if (element.offsetExpr) {
+    elementSize += getInstrListSize(element.offsetExpr);
+  }
+
+  if (element.functionIds) {
+    elementSize += getVecSize(element.functionIds, getEncodedSize);
+  }
+
+  if (element.refType) {
+    elementSize += 1;
+  }
+
+  if (element.elementKind) {
+    elementSize += 1;
+  }
+
+  if (element.initExprs) {
+    for (const expr of element.initExprs) {
+      elementSize += getInstrListSize(expr);
+    }
+  }
+
+  return elementSize;
+}
+
 function getSectionSize<T>(entries: T[], sizeFn: (e: T) => number) {
+  // +1 for the section id
+  return getVecSize(entries, sizeFn) + 1;
+}
+
+function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
   // Allocate space for length prefix
   let vecSize = getEncodedSize(entries.length);
 
@@ -105,7 +142,6 @@ function getSectionSize<T>(entries: T[], sizeFn: (e: T) => number) {
   }
 
   return (
-    1 + // Module ID
     getEncodedSize(vecSize) + // Payload length
     vecSize // Payload
   );
@@ -197,6 +233,17 @@ export function getExportSectionSize(exportSection: ExportSection) {
  */
 export function getStartSectionSize(startSection: StartSection) {
   return getSectionSize([startSection.startFunction], getEncodedSize);
+}
+
+/**
+ * Gets size of element section, including
+ * the standard section preamble
+ *
+ * @param elementSection - element section.
+ * @returns Size of element section in bytes
+ */
+export function getElementSectionSize(elementSection: ElementSection) {
+  return getSectionSize([elementSection.elements], getElementSize);
 }
 
 export function getModuleSize(module: Module): number {

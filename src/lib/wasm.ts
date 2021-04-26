@@ -60,6 +60,16 @@ export interface StartSection {
   startFunction: number;
 }
 
+export interface ElementSection {
+  id: 9;
+  elements: Element;
+}
+
+interface CodeSection {
+  id: 10;
+  code: FunctionBody[];
+}
+
 export enum ExternalKind {
   Function = 0,
   Table = 1,
@@ -113,7 +123,7 @@ enum ElementKind {
   FuncRef = 0x00,
 }
 
-type ElementMode =
+type Element =
   | {
       id: 0x00; // Active mode
       offsetExpr: OpCode[];
@@ -159,25 +169,9 @@ type ElementMode =
       initExprs: OpCode[][];
     };
 
-interface Element {
-  type: RefType;
-  init: OpCode[][];
-  mode: ElementMode;
-}
-
-interface ElementSection {
-  id: 9;
-  elements: Element;
-}
-
 interface FunctionBody {
   locals: { [valueType in ValueType]: number };
   code: OpCode[];
-}
-
-interface CodeSection {
-  id: 10;
-  code: FunctionBody[];
 }
 
 type Data =
