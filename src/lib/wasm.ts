@@ -24,6 +24,42 @@ export interface TypeSection {
   types: FuncType[];
 }
 
+export interface ImportSection {
+  id: 2;
+  imports: ImportEntry[];
+}
+
+export interface FunctionSection {
+  id: 3;
+  // indices into types section
+  types: number[];
+}
+
+export interface TableSection {
+  id: 4;
+  tables: TableType[];
+}
+
+export interface MemorySection {
+  id: 5;
+  memories: ResizableLimits[];
+}
+
+export interface GlobalSection {
+  id: 6;
+  globals: Global[];
+}
+
+export interface ExportSection {
+  id: 7;
+  exports: Export[];
+}
+
+export interface StartSection {
+  id: 8;
+  startFunction: number;
+}
+
 export enum ExternalKind {
   Function = 0,
   Table = 1,
@@ -53,24 +89,9 @@ export interface ImportEntry {
       };
 }
 
-export interface ImportSection {
-  id: 2;
-  imports: ImportEntry[];
-}
-
-interface FunctionSection {
-  id: 3;
-  // indices into types section
-  types: number[];
-}
-
-interface TableType {
+export interface TableType {
   elementType: RefType;
   limits: ResizableLimits;
-}
-
-interface TableSection {
-  tables: TableType[];
 }
 
 export interface ResizableLimits {
@@ -78,24 +99,14 @@ export interface ResizableLimits {
   maximum?: number;
 }
 
-interface MemorySection {
-  id: 5;
-  memories: ResizableLimits[];
-}
-
 interface GlobalType {
   type: ValueType;
   mutability: boolean;
 }
 
-interface Global {
+export interface Global {
   type: GlobalType;
   initExpr: OpCode[];
-}
-
-interface GlobalSection {
-  id: 6;
-  globals: Global[];
 }
 
 enum ElementKind {
@@ -137,7 +148,7 @@ type ElementMode =
     }
   | {
       id: 0x06; // Active
-      tableIndeX: number;
+      tableIndex: number;
       offsetExpr: OpCode[];
       refType: RefType;
       initExprs: OpCode[][];
@@ -191,20 +202,10 @@ interface DataSection {
   data: Data[];
 }
 
-interface Export {
+export interface Export {
   name: string;
   kind: ExternalKind;
   index: number;
-}
-
-interface ExportSection {
-  id: 7;
-  exports: Export[];
-}
-
-interface StartSection {
-  id: 8;
-  startFunction: number;
 }
 
 // Can be extended for any custom section
@@ -213,7 +214,7 @@ interface CustomSection {
   name: string;
 }
 
-enum OpCode {}
+export enum OpCode {}
 
 export interface Module {
   types: TypeSection;
