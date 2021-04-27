@@ -18,6 +18,8 @@ import {
   ExportSection,
   StartSection,
   ElementSection,
+  FunctionBody,
+  CodeSection,
 } from './wasm';
 import { getEncodedSize } from './leb128';
 
@@ -126,6 +128,15 @@ function getElementSize(element: Element) {
   }
 
   return elementSize;
+}
+
+function getFunctionBodySize(body: FunctionBody): number {
+  const localsSize = getVecSize(Object.entries(body.locals), ([_, count]) => {
+    return 1 + getEncodedSize(count);
+  });
+
+  const bodySize = getInstrListSize(body.code) + localsSize;
+  return getEncodedSize(bodySize) + bodySize;
 }
 
 function getSectionSize<T>(entries: T[], sizeFn: (e: T) => number) {
@@ -246,6 +257,17 @@ export function getElementSectionSize(elementSection: ElementSection) {
   return getSectionSize([elementSection.elements], getElementSize);
 }
 
+/**
+ * Gets size of code section, including
+ * the standard section preamble
+ *
+ * @param codeSection - code section.
+ * @returns Size of code section in bytes
+ */
+export function getCodeSectionSize(codeSection: CodeSection) {
+  return getSectionSize(codeSection.code, getFunctionBodySize);
+}
+
 export function getModuleSize(module: Module): number {
   return (
     getTypeSectionSize(module.types) +
@@ -255,6 +277,8 @@ export function getModuleSize(module: Module): number {
     getMemorySectionSize(module.memories) +
     getGlobalSectionSize(module.globals) +
     getExportSectionSize(module.exports) +
-    getStartSectionSize(module.start)
+    getStartSectionSize(module.start) +
+    getElementSectionSize(module.elements) +
+    getCodeSectionSize(module.code)
   );
 }

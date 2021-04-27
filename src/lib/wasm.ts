@@ -65,9 +65,14 @@ export interface ElementSection {
   elements: Element;
 }
 
-interface CodeSection {
+export interface CodeSection {
   id: 10;
   code: FunctionBody[];
+}
+
+export interface DataSection {
+  id: 11;
+  data: Data[];
 }
 
 export enum ExternalKind {
@@ -123,7 +128,7 @@ enum ElementKind {
   FuncRef = 0x00,
 }
 
-type Element =
+export type Element =
   | {
       id: 0x00; // Active mode
       offsetExpr: OpCode[];
@@ -169,7 +174,7 @@ type Element =
       initExprs: OpCode[][];
     };
 
-interface FunctionBody {
+export interface FunctionBody {
   locals: { [valueType in ValueType]: number };
   code: OpCode[];
 }
@@ -190,11 +195,6 @@ type Data =
       offsetExpr: OpCode[];
       bytes: [];
     };
-
-interface DataSection {
-  id: 11;
-  data: Data[];
-}
 
 export interface Export {
   name: string;
