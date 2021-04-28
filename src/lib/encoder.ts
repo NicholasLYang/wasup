@@ -1,284 +1,119 @@
 import {
-  Element,
   ExternalKind,
-  FunctionSection,
   FuncType,
-  GlobalSection,
+  GlobalType,
   ImportEntry,
   ImportSection,
-  MemorySection,
   Module,
-  OpCode,
   ResizableLimits,
-  TableSection,
   TableType,
   TypeSection,
-  Global,
-  Export,
-  ExportSection,
-  StartSection,
-  ElementSection,
-  FunctionBody,
-  CodeSection,
+  ValueType,
 } from './wasm';
-import { getEncodedSize } from './leb128';
+import { getImportSectionSize, getTypeSectionSize } from './size';
+import { toUnsignedLEB128 } from './leb128';
 
-function getFuncTypeSize(funcType: FuncType): number {
-  return (
-    1 + // Type constructor
-    // length of the vector as varuint32
-    getEncodedSize(funcType.paramTypes.length) +
-    // Actual types
-    funcType.paramTypes.length +
-    getEncodedSize(funcType.returnTypes.length) +
-    funcType.returnTypes.length
+export function encodeModule(module: Module) {
+  if (module.types) {
+    console.log(encodeTypeSection(module.types));
+  }
+}
+
+function encodeSection<T extends { id: number }, U>(
+  section: T,
+  sizeFn: (s: T) => number,
+  itemsFn: (s: T) => U[],
+  encodeFn: (item: U) => number[]
+): number[] {
+  const size = sizeFn(section);
+  const output: number[] = [section.id];
+  const items = itemsFn(section);
+
+  output.push(...toUnsignedLEB128(size));
+  output.push(...toUnsignedLEB128(items.length));
+
+  for (const item of items) {
+    output.push(...encodeFn(item));
+  }
+
+  return output;
+}
+
+export function encodeTypeSection(typeSection: TypeSection): number[] {
+  return encodeSection(
+    typeSection,
+    getTypeSectionSize,
+    (section) => section.types,
+    encodeFuncType
   );
 }
 
-function getResizeableLimitsSize(limits: ResizableLimits) {
-  let limitsLen = 1 + getEncodedSize(limits.initial);
-  if (limits.maximum) {
-    limitsLen += getEncodedSize(limits.maximum);
-  }
-  return limitsLen;
+export function encodeImportSection(importSection: ImportSection): number[] {
+  return encodeSection(
+    importSection,
+    getImportSectionSize,
+    (section) => section.imports,
+    encodeImportEntry
+  );
 }
 
-function getImportEntrySize(importEntry: ImportEntry) {
-  const nameLen = new TextEncoder().encode(importEntry.module).length;
-  const fieldLen = new TextEncoder().encode(importEntry.field).length;
+function encodeFuncType(type: FuncType): number[] {
+  const output = [0x60];
+  output.push(...encodeVec(type.paramTypes, (t: ValueType) => [t]));
+  output.push(...encodeVec(type.returnTypes, (t: ValueType) => [t]));
 
-  // 1 byte for the kind
-  let descLen = 1;
-  const { description } = importEntry;
-  switch (description.kind) {
+  return output;
+}
+
+function encodeImportEntry(importEntry: ImportEntry): number[] {
+  const encoder = new TextEncoder();
+  const moduleBytes = encoder.encode(importEntry.module);
+  const output = toUnsignedLEB128(moduleBytes.length);
+  output.push(...moduleBytes);
+  const fieldBytes = encoder.encode(importEntry.field);
+  output.push(...toUnsignedLEB128(fieldBytes.length));
+  output.push(...fieldBytes);
+  output.push(importEntry.description.kind);
+
+  switch (importEntry.description.kind) {
     case ExternalKind.Function:
-      descLen += getEncodedSize(description.typeIndex);
-      break;
+      output.push(...toUnsignedLEB128(importEntry.description.typeIndex));
+      return output;
     case ExternalKind.Table:
-      // 1 for reftype
-      descLen += 1 + getResizeableLimitsSize(description.tableType.limits);
-      break;
+      output.push(...encodeTableType(importEntry.description.tableType));
+      return output;
     case ExternalKind.Memory:
-      descLen += getResizeableLimitsSize(description.memoryType);
-      break;
+      output.push(...encodeResizableLimits(importEntry.description.memoryType));
+      return output;
     case ExternalKind.Global:
-      // 1 for ValueType and 1 for mutability
-      descLen += 2;
-      break;
+      output.push(...encodeGlobalType(importEntry.description.globalType));
+      return output;
   }
-
-  return (
-    getEncodedSize(nameLen) +
-    nameLen +
-    getEncodedSize(fieldLen) +
-    fieldLen +
-    descLen
-  );
 }
 
-function getTableTypeSize(tableType: TableType): number {
-  // 1 for ref type
-  return 1 + getResizeableLimitsSize(tableType.limits);
+function encodeGlobalType(globalType: GlobalType): number[] {
+  return [globalType.type, globalType.mutability ? 1 : 0];
 }
 
-function getGlobalSize(global: Global): number {
-  // Global type is 2 bytes (bool + value type)
-  return 2 + getInstrListSize(global.initExpr);
+function encodeTableType(tableType: TableType): number[] {
+  const output: number[] = [tableType.elementType];
+  output.push(...encodeResizableLimits(tableType.limits));
+  return output;
 }
 
-function getInstrListSize(instrList: OpCode[]) {
-  return 1 + instrList.length;
-}
-
-function getExportSize(exportEntry: Export) {
-  const nameLen = new TextEncoder().encode(exportEntry.name).length;
-
-  return (
-    getEncodedSize(nameLen) + nameLen + 1 + getEncodedSize(exportEntry.index)
-  );
-}
-
-function getElementSize(element: Element) {
-  let elementSize = 1;
-
-  if (element.tableIndex) {
-    elementSize += getEncodedSize(element.tableIndex);
+function encodeResizableLimits(resizableLimits: ResizableLimits): number[] {
+  if (resizableLimits.maximum) {
+    return [
+      0x01,
+      ...toUnsignedLEB128(resizableLimits.minimum),
+      ...toUnsignedLEB128(resizableLimits.maximum),
+    ];
   }
-
-  if (element.offsetExpr) {
-    elementSize += getInstrListSize(element.offsetExpr);
-  }
-
-  if (element.functionIds) {
-    elementSize += getVecSize(element.functionIds, getEncodedSize);
-  }
-
-  if (element.refType) {
-    elementSize += 1;
-  }
-
-  if (element.elementKind) {
-    elementSize += 1;
-  }
-
-  if (element.initExprs) {
-    for (const expr of element.initExprs) {
-      elementSize += getInstrListSize(expr);
-    }
-  }
-
-  return elementSize;
+  return [0x00, ...toUnsignedLEB128(resizableLimits.minimum)];
 }
 
-function getFunctionBodySize(body: FunctionBody): number {
-  const localsSize = getVecSize(Object.entries(body.locals), ([_, count]) => {
-    return 1 + getEncodedSize(count);
-  });
-
-  const bodySize = getInstrListSize(body.code) + localsSize;
-  return getEncodedSize(bodySize) + bodySize;
-}
-
-function getSectionSize<T>(entries: T[], sizeFn: (e: T) => number) {
-  // +1 for the section id
-  return getVecSize(entries, sizeFn) + 1;
-}
-
-function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
-  // Allocate space for length prefix
-  let vecSize = getEncodedSize(entries.length);
-
-  for (const entry of entries) {
-    vecSize += sizeFn(entry);
-  }
-
-  return (
-    getEncodedSize(vecSize) + // Payload length
-    vecSize // Payload
-  );
-}
-
-/**
- * Gets size of type section, including
- * the standard section preamble
- *
- * @param typeSection - Types section.
- * @returns Size of types section in bytes
- */
-export function getTypeSectionSize(typeSection: TypeSection) {
-  return getSectionSize(typeSection.types, getFuncTypeSize);
-}
-
-/**
- * Gets size of import section, including
- * the standard section preamble
- *
- * @param importSection - Import section.
- * @returns Size of import section in bytes
- */
-export function getImportSectionSize(importSection: ImportSection) {
-  return getSectionSize(importSection.imports, getImportEntrySize);
-}
-
-/**
- * Gets size of function section, including
- * the standard section preamble
- *
- * @param functionSection - function section.
- * @returns Size of function section in bytes
- */
-export function getFunctionSectionSize(functionSection: FunctionSection) {
-  return getSectionSize(functionSection.types, getEncodedSize);
-}
-
-/**
- * Gets size of table section, including
- * the standard section preamble
- *
- * @param tableSection - table section.
- * @returns Size of table section in bytes
- */
-export function getTableSectionSize(tableSection: TableSection) {
-  return getSectionSize(tableSection.tables, getTableTypeSize);
-}
-
-/**
- * Gets size of memory section, including
- * the standard section preamble
- *
- * @param memorySection - memory section.
- * @returns Size of memory section in bytes
- */
-export function getMemorySectionSize(memorySection: MemorySection) {
-  return getSectionSize(memorySection.memories, getResizeableLimitsSize);
-}
-
-/**
- * Gets size of global section, including
- * the standard section preamble
- *
- * @param globalSection - global section.
- * @returns Size of global section in bytes
- */
-export function getGlobalSectionSize(globalSection: GlobalSection) {
-  return getSectionSize(globalSection.globals, getGlobalSize);
-}
-
-/**
- * Gets size of export section, including
- * the standard section preamble
- *
- * @param exportSection - export section.
- * @returns Size of export section in bytes
- */
-export function getExportSectionSize(exportSection: ExportSection) {
-  return getSectionSize(exportSection.exports, getExportSize);
-}
-
-/**
- * Gets size of start section, including
- * the standard section preamble
- *
- * @param startSection - start section.
- * @returns Size of start section in bytes
- */
-export function getStartSectionSize(startSection: StartSection) {
-  return getSectionSize([startSection.startFunction], getEncodedSize);
-}
-
-/**
- * Gets size of element section, including
- * the standard section preamble
- *
- * @param elementSection - element section.
- * @returns Size of element section in bytes
- */
-export function getElementSectionSize(elementSection: ElementSection) {
-  return getSectionSize([elementSection.elements], getElementSize);
-}
-
-/**
- * Gets size of code section, including
- * the standard section preamble
- *
- * @param codeSection - code section.
- * @returns Size of code section in bytes
- */
-export function getCodeSectionSize(codeSection: CodeSection) {
-  return getSectionSize(codeSection.code, getFunctionBodySize);
-}
-
-export function getModuleSize(module: Module): number {
-  return (
-    getTypeSectionSize(module.types) +
-    getImportSectionSize(module.imports) +
-    getFunctionSectionSize(module.functions) +
-    getTableSectionSize(module.tables) +
-    getMemorySectionSize(module.memories) +
-    getGlobalSectionSize(module.globals) +
-    getExportSectionSize(module.exports) +
-    getStartSectionSize(module.start) +
-    getElementSectionSize(module.elements) +
-    getCodeSectionSize(module.code)
-  );
+function encodeVec<T>(vec: T[], encodeFn: (e: T) => number[]): number[] {
+  const output = toUnsignedLEB128(vec.length);
+  output.push(...vec.flatMap((e) => encodeFn(e)));
+  return output;
 }

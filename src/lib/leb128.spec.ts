@@ -11,8 +11,8 @@ function getRandomInt(max: number) {
 }
 
 test('toUnsignedLEB128', (t) => {
-  t.deepEqual(toUnsignedLEB128(255), new Uint8Array([0xff, 0x01]));
-  t.deepEqual(toUnsignedLEB128(127), new Uint8Array([parseInt('01111111', 2)]));
+  t.deepEqual(toUnsignedLEB128(255), [0xff, 0x01]);
+  t.deepEqual(toUnsignedLEB128(127), [parseInt('01111111', 2)]);
 });
 
 test('toUnsignedLEB128 vs leb128 package', (t) => {

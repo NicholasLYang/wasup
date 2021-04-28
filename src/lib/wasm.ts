@@ -1,3 +1,6 @@
+export const VERSION = 0x1;
+export const MAGIC_NUMBER = 0x6d736100;
+
 type FuncId = number;
 
 export enum NumType {
@@ -19,6 +22,12 @@ export interface FuncType {
   returnTypes: ValueType[];
 }
 
+export interface CustomSection {
+  id: 0;
+  name: string;
+  contents: Uint8Array;
+}
+
 export interface TypeSection {
   id: 1;
   types: FuncType[];
@@ -32,7 +41,7 @@ export interface ImportSection {
 export interface FunctionSection {
   id: 3;
   // indices into types section
-  types: number[];
+  functionTypes: number[];
 }
 
 export interface TableSection {
@@ -75,6 +84,14 @@ export interface DataSection {
   data: Data[];
 }
 
+// Btw does Data Count not sound like
+// a evil vampire who steals precious
+// data from the innocent? Just me?
+export interface DataCountSection {
+  id: 12;
+  dataCount: number;
+}
+
 export enum ExternalKind {
   Function = 0,
   Table = 1,
@@ -110,11 +127,11 @@ export interface TableType {
 }
 
 export interface ResizableLimits {
-  initial: number;
+  minimum: number;
   maximum?: number;
 }
 
-interface GlobalType {
+export interface GlobalType {
   type: ValueType;
   mutability: boolean;
 }
@@ -124,7 +141,7 @@ export interface Global {
   initExpr: OpCode[];
 }
 
-enum ElementKind {
+export enum ElementKind {
   FuncRef = 0x00,
 }
 
@@ -179,7 +196,7 @@ export interface FunctionBody {
   code: OpCode[];
 }
 
-type Data =
+export type Data =
   | {
       id: 0x00;
       offsetExpr: OpCode[];
@@ -202,28 +219,20 @@ export interface Export {
   index: number;
 }
 
-// Can be extended for any custom section
-interface CustomSection {
-  id: 0;
-  name: string;
-}
-
 export enum OpCode {}
 
 export interface Module {
-  types: TypeSection;
-  functions: FunctionSection;
-  tables: TableSection;
-  memories: MemorySection;
-  globals: GlobalSection;
-  elements: ElementSection;
-  data: DataSection;
-  start: StartSection;
-  imports: ImportSection;
-  exports: ExportSection;
-  code: CodeSection;
+  types?: TypeSection;
+  functions?: FunctionSection;
+  tables?: TableSection;
+  memories?: MemorySection;
+  globals?: GlobalSection;
+  elements?: ElementSection;
+  data?: DataSection;
+  start?: StartSection;
+  imports?: ImportSection;
+  exports?: ExportSection;
+  code?: CodeSection;
+  dataCount?: DataCountSection;
   customSections: CustomSection[];
 }
-
-export const VERSION = 0x1;
-export const MAGIC_NUMBER = 0x6d736100;

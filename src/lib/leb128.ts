@@ -40,27 +40,21 @@ export function getEncodedSize(n: number): number {
  * Converts a number n to unsigned LEB128
  *
  * @param n - Must be an integer.
- * @param buffer - If included, we write to the buffer
  * @returns LEB128 encoded integer as a BigInt.
  */
-export function toUnsignedLEB128(n: number, buffer?: Uint8Array): Uint8Array {
+export function toUnsignedLEB128(n: number): number[] {
   if (!Number.isInteger(n)) {
     throw new RangeError(`n must be an integer, instead is ${n}`);
   }
 
-  const inputBitLen = getHighestBit(n);
-  const outputBitLen = inputBitLen + Math.ceil(inputBitLen / 7);
-  const outputByteLen = Math.ceil(outputBitLen / 8);
-  const output = buffer ?? new Uint8Array(outputByteLen);
+  const output = [];
 
-  let i = 0;
   // Loop until the next to last 7 bytes
   while (n > 0x7f) {
-    output[i] = (n & 0x7f) | 0x80;
-    i += 1;
+    output.push((n & 0x7f) | 0x80);
     n = n >> 7;
   }
 
-  output[i] = n;
+  output.push(n);
   return output;
 }
