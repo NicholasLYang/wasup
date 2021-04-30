@@ -1,60 +1,230 @@
 import {
+  Element,
+  ElementSection,
+  Export,
+  ExportSection,
   ExternalKind,
+  FunctionSection,
   FuncType,
+  Global,
+  GlobalSection,
   GlobalType,
   ImportEntry,
   ImportSection,
+  MemorySection,
   Module,
   ResizableLimits,
+  StartSection,
+  TableSection,
   TableType,
   TypeSection,
   ValueType,
 } from './wasm';
-import { getImportSectionSize, getTypeSectionSize } from './size';
 import { toUnsignedLEB128 } from './leb128';
 
 export function encodeModule(module: Module) {
+  const output = [];
+
   if (module.types) {
-    console.log(encodeTypeSection(module.types));
+    output.push(...encodeTypeSection(module.types));
+  }
+
+  if (module.imports) {
+    output.push(...encodeImportSection(module.imports));
+  }
+
+  if (module.functions) {
+    output.push(...encodeFunctionSection(module.functions));
+  }
+
+  if (module.tables) {
+    output.push(...encodeTableSection(module.tables));
+  }
+
+  if (module.memories) {
+    output.push(...encodeMemorySection(module.memories));
+  }
+
+  if (module.globals) {
+    output.push(...encodeGlobalSection(module.globals));
+  }
+
+  if (module.exports) {
+    output.push(...encodeExportSection(module.exports));
+  }
+
+  if (module.start) {
+    output.push(...encodeStartSection(module.start));
+  }
+
+  if (module.elements) {
+    output.push(...encodeElementSection(module.elements));
   }
 }
 
 function encodeSection<T extends { id: number }, U>(
   section: T,
-  sizeFn: (s: T) => number,
   itemsFn: (s: T) => U[],
   encodeFn: (item: U) => number[]
 ): number[] {
-  const size = sizeFn(section);
   const output: number[] = [section.id];
   const items = itemsFn(section);
+  // We push to this temporary array cause we need the size of the
+  // section content
+  const sectionContent = [];
 
-  output.push(...toUnsignedLEB128(size));
-  output.push(...toUnsignedLEB128(items.length));
+  sectionContent.push(...toUnsignedLEB128(items.length));
 
   for (const item of items) {
-    output.push(...encodeFn(item));
+    sectionContent.push(...encodeFn(item));
   }
+
+  output.push(...toUnsignedLEB128(sectionContent.length));
+  output.push(...sectionContent);
 
   return output;
 }
 
 export function encodeTypeSection(typeSection: TypeSection): number[] {
-  return encodeSection(
-    typeSection,
-    getTypeSectionSize,
-    (section) => section.types,
-    encodeFuncType
-  );
+  return encodeSection(typeSection, (section) => section.types, encodeFuncType);
 }
 
 export function encodeImportSection(importSection: ImportSection): number[] {
   return encodeSection(
     importSection,
-    getImportSectionSize,
     (section) => section.imports,
     encodeImportEntry
   );
+}
+
+export function encodeFunctionSection(
+  functionSection: FunctionSection
+): number[] {
+  return encodeSection(
+    functionSection,
+    (section) => section.functionTypes,
+    toUnsignedLEB128
+  );
+}
+
+export function encodeTableSection(tableSection: TableSection): number[] {
+  return encodeSection(
+    tableSection,
+    (section) => section.tables,
+    encodeTableType
+  );
+}
+
+export function encodeMemorySection(memorySection: MemorySection): number[] {
+  return encodeSection(
+    memorySection,
+    (section) => section.memories,
+    encodeResizableLimits
+  );
+}
+
+export function encodeGlobalSection(globalSection: GlobalSection): number[] {
+  return encodeSection(
+    globalSection,
+    (section) => section.globals,
+    encodeGlobal
+  );
+}
+
+export function encodeExportSection(exportSection: ExportSection): number[] {
+  return encodeSection(
+    exportSection,
+    (section) => section.exports,
+    encodeExport
+  );
+}
+
+export function encodeStartSection(startSection: StartSection): number[] {
+  return encodeSection(
+    startSection,
+    (section) => [section.startFunction],
+    toUnsignedLEB128
+  );
+}
+
+export function encodeElementSection(elementSection: ElementSection): number[] {
+  return encodeSection(
+    elementSection,
+    (section) => section.elements,
+    encodeElement
+  );
+}
+
+function encodeElement(element: Element): number[] {
+  switch (element.id) {
+    case 0x00:
+      return [
+        0x00,
+        ...element.offsetExpr,
+        0x0b,
+        ...encodeVec(element.functionIds, toUnsignedLEB128),
+      ];
+    case 0x01:
+      return [
+        0x01,
+        element.kind,
+        ...encodeVec(element.functionIds, toUnsignedLEB128),
+      ];
+    case 0x02:
+      return [
+        0x02,
+        ...toUnsignedLEB128(element.tableIndex),
+        ...element.offsetExpr,
+        0x0b,
+        element.kind,
+        ...encodeVec(element.functionIds, toUnsignedLEB128),
+      ];
+    case 0x03:
+      return [
+        0x03,
+        element.kind,
+        ...encodeVec(element.functionIds, toUnsignedLEB128),
+      ];
+    case 0x04:
+      return [
+        0x04,
+        ...element.offsetExpr,
+        0x0b,
+        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
+      ];
+    case 0x05:
+      return [
+        0x05,
+        element.refType,
+        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
+      ];
+    case 0x06:
+      return [
+        0x06,
+        ...toUnsignedLEB128(element.tableIndex),
+        ...element.offsetExpr,
+        0x0b,
+        element.refType,
+        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
+      ];
+    case 0x07:
+      return [
+        0x07,
+        element.refType,
+        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
+      ];
+  }
+}
+
+function encodeExport(exportEntry: Export): number[] {
+  const encoder = new TextEncoder();
+  const nameBytes = encoder.encode(exportEntry.name);
+  const output = toUnsignedLEB128(nameBytes.length);
+  output.push(...nameBytes);
+  output.push(exportEntry.kind);
+  output.push(...toUnsignedLEB128(exportEntry.index));
+
+  return output;
 }
 
 function encodeFuncType(type: FuncType): number[] {
@@ -89,6 +259,10 @@ function encodeImportEntry(importEntry: ImportEntry): number[] {
       output.push(...encodeGlobalType(importEntry.description.globalType));
       return output;
   }
+}
+
+function encodeGlobal(global: Global): number[] {
+  return [...encodeGlobalType(global.type), ...global.initExpr, 0x0b];
 }
 
 function encodeGlobalType(globalType: GlobalType): number[] {

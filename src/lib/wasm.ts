@@ -71,7 +71,7 @@ export interface StartSection {
 
 export interface ElementSection {
   id: 9;
-  elements: Element;
+  elements: Element[];
 }
 
 export interface CodeSection {
@@ -153,19 +153,19 @@ export type Element =
     }
   | {
       id: 0x01; // Passive
-      elementKind: ElementKind;
+      kind: ElementKind;
       functionIds: FuncId[];
     }
   | {
       id: 0x02; // Active
       tableIndex: number;
       offsetExpr: OpCode[];
-      elementKind: ElementKind;
+      kind: ElementKind;
       functionIds: FuncId[];
     }
   | {
       id: 0x03; // Declarative
-      elementKind: ElementKind;
+      kind: ElementKind;
       functionIds: FuncId[];
     }
   | {
@@ -219,7 +219,7 @@ export interface Export {
   index: number;
 }
 
-export enum OpCode {}
+type OpCode = number;
 
 export interface Module {
   types?: TypeSection;
