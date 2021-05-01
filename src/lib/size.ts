@@ -1,31 +1,31 @@
 import {
+  Code,
+  CodeSection,
+  CustomSection,
+  Data,
+  DataCountSection,
+  DataSection,
   Element,
+  ElementKind,
+  ElementSection,
+  Export,
+  ExportSection,
   ExternalKind,
   FunctionSection,
   FuncType,
+  Global,
   GlobalSection,
   ImportEntry,
   ImportSection,
   MemorySection,
   Module,
   OpCode,
+  RefType,
   ResizableLimits,
+  StartSection,
   TableSection,
   TableType,
   TypeSection,
-  Global,
-  Export,
-  ExportSection,
-  StartSection,
-  ElementSection,
-  FunctionBody,
-  CodeSection,
-  RefType,
-  ElementKind,
-  Data,
-  DataSection,
-  DataCountSection,
-  CustomSection,
 } from './wasm';
 import { getEncodedSize } from './leb128';
 
@@ -154,7 +154,7 @@ function getElementSize(element: Element) {
   return elementSize;
 }
 
-function getFunctionBodySize(body: FunctionBody): number {
+function getFunctionBodySize(body: Code): number {
   const localsSize = getVecSize(Object.entries(body.locals), ([_, count]) => {
     return 1 + getEncodedSize(count);
   });
@@ -292,7 +292,7 @@ export function getStartSectionSize(startSection: StartSection) {
  * @returns Size of element section in bytes
  */
 export function getElementSectionSize(elementSection: ElementSection) {
-  return getVecSize([elementSection.elements], getElementSize);
+  return getVecSize(elementSection.elements, getElementSize);
 }
 
 /**

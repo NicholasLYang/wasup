@@ -1,4 +1,10 @@
+import { toUnsignedLEB128 } from './leb128';
 import {
+  Code,
+  CodeSection,
+  Data,
+  DataCountSection,
+  DataSection,
   Element,
   ElementSection,
   Export,
@@ -20,10 +26,9 @@ import {
   TypeSection,
   ValueType,
 } from './wasm';
-import { toUnsignedLEB128 } from './leb128';
 
 export function encodeModule(module: Module) {
-  const output = [];
+  const output = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
 
   if (module.types) {
     output.push(...encodeTypeSection(module.types));
@@ -60,6 +65,20 @@ export function encodeModule(module: Module) {
   if (module.elements) {
     output.push(...encodeElementSection(module.elements));
   }
+
+  if (module.code) {
+    output.push(...encodeCodeSection(module.code));
+  }
+
+  if (module.data) {
+    output.push(...encodeDataSection(module.data));
+  }
+
+  if (module.dataCount) {
+    output.push(...encodeDataCountSection(module.dataCount));
+  }
+
+  return output;
 }
 
 function encodeSection<T extends { id: number }, U>(
@@ -140,11 +159,8 @@ export function encodeExportSection(exportSection: ExportSection): number[] {
 }
 
 export function encodeStartSection(startSection: StartSection): number[] {
-  return encodeSection(
-    startSection,
-    (section) => [section.startFunction],
-    toUnsignedLEB128
-  );
+  const startId = toUnsignedLEB128(startSection.startFunction);
+  return [startSection.id, ...toUnsignedLEB128(startId.length), ...startId];
 }
 
 export function encodeElementSection(elementSection: ElementSection): number[] {
@@ -153,6 +169,61 @@ export function encodeElementSection(elementSection: ElementSection): number[] {
     (section) => section.elements,
     encodeElement
   );
+}
+
+export function encodeCodeSection(codeSection: CodeSection): number[] {
+  return encodeSection(codeSection, (section) => section.code, encodeCode);
+}
+
+export function encodeDataSection(dataSection: DataSection): number[] {
+  return encodeSection(dataSection, (section) => section.data, encodeData);
+}
+
+export function encodeDataCountSection(
+  dataCountSection: DataCountSection
+): number[] {
+  return encodeSection(
+    dataCountSection,
+    (section) => [section.dataCount],
+    toUnsignedLEB128
+  );
+}
+
+function encodeData(data: Data): number[] {
+  switch (data.id) {
+    case 0x00:
+      return [
+        0x00,
+        ...data.offsetExpr,
+        0x0b,
+        ...toUnsignedLEB128(data.bytes.length),
+        ...data.bytes,
+      ];
+    case 0x01:
+      return [0x01, ...toUnsignedLEB128(data.bytes.length), ...data.bytes];
+    case 0x02:
+      return [
+        0x02,
+        ...toUnsignedLEB128(data.memoryIndex),
+        ...data.offsetExpr,
+        0x0b,
+        ...toUnsignedLEB128(data.bytes.length),
+        ...data.bytes,
+      ];
+  }
+}
+
+function encodeCode(code: Code): number[] {
+  const funcBody = encodeVec([...code.locals], ([varType, count]) => {
+    const output = toUnsignedLEB128(count);
+    output.push(varType);
+    return output;
+  });
+
+  funcBody.push(...code.code);
+  funcBody.push(0x0b);
+
+  return [...toUnsignedLEB128(funcBody.length), ...funcBody];
 }
 
 function encodeElement(element: Element): number[] {

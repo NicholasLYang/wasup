@@ -76,7 +76,7 @@ export interface ElementSection {
 
 export interface CodeSection {
   id: 10;
-  code: FunctionBody[];
+  code: Code[];
 }
 
 export interface DataSection {
@@ -191,8 +191,10 @@ export type Element =
       initExprs: OpCode[][];
     };
 
-export interface FunctionBody {
-  locals: { [valueType in ValueType]: number };
+export type LocalVariables = Map<ValueType, number>;
+
+export interface Code {
+  locals: LocalVariables;
   code: OpCode[];
 }
 
@@ -219,7 +221,7 @@ export interface Export {
   index: number;
 }
 
-type OpCode = number;
+export type OpCode = number;
 
 export interface Module {
   types?: TypeSection;
