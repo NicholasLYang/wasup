@@ -22,67 +22,34 @@ export interface FuncType {
   returnTypes: ValueType[];
 }
 
+// Most sections follow this format
+export interface Section<Id extends number, Item> {
+  id: Id;
+  items: Item[];
+}
+
 export interface CustomSection {
   id: 0;
   name: string;
   contents: Uint8Array;
 }
 
-export interface TypeSection {
-  id: 1;
-  types: FuncType[];
-}
-
-export interface ImportSection {
-  id: 2;
-  imports: ImportEntry[];
-}
-
-export interface FunctionSection {
-  id: 3;
-  // indices into types section
-  functionTypes: number[];
-}
-
-export interface TableSection {
-  id: 4;
-  tables: TableType[];
-}
-
-export interface MemorySection {
-  id: 5;
-  memories: ResizableLimits[];
-}
-
-export interface GlobalSection {
-  id: 6;
-  globals: Global[];
-}
-
-export interface ExportSection {
-  id: 7;
-  exports: Export[];
-}
+export type TypeSection = Section<1, FuncType>;
+export type ImportSection = Section<2, ImportEntry>;
+export type FunctionSection = Section<3, number>;
+export type TableSection = Section<4, TableType>;
+export type MemorySection = Section<5, ResizableLimits>;
+export type GlobalSection = Section<6, Global>;
+export type ExportSection = Section<7, Export>;
 
 export interface StartSection {
   id: 8;
   startFunction: number;
 }
 
-export interface ElementSection {
-  id: 9;
-  elements: Element[];
-}
-
-export interface CodeSection {
-  id: 10;
-  code: Code[];
-}
-
-export interface DataSection {
-  id: 11;
-  data: Data[];
-}
+export type ElementSection = Section<9, Element>;
+export type CodeSection = Section<10, Code>;
+export type DataSection = Section<11, Data>;
 
 // Btw does Data Count not sound like
 // a evil vampire who steals precious
@@ -224,17 +191,17 @@ export interface Export {
 export type OpCode = number;
 
 export interface Module {
-  types?: TypeSection;
-  functions?: FunctionSection;
-  tables?: TableSection;
-  memories?: MemorySection;
-  globals?: GlobalSection;
-  elements?: ElementSection;
-  data?: DataSection;
+  types: TypeSection;
+  imports: ImportSection;
+  functions: FunctionSection;
+  tables: TableSection;
+  memories: MemorySection;
+  globals: GlobalSection;
+  exports: ExportSection;
   start?: StartSection;
-  imports?: ImportSection;
-  exports?: ExportSection;
-  code?: CodeSection;
+  elements: ElementSection;
+  code: CodeSection;
+  data: DataSection;
   dataCount?: DataCountSection;
   customSections: CustomSection[];
 }

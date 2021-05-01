@@ -20,6 +20,7 @@ import {
   MemorySection,
   Module,
   ResizableLimits,
+  Section,
   StartSection,
   TableSection,
   TableType,
@@ -27,34 +28,34 @@ import {
   ValueType,
 } from './wasm';
 
-export function encodeModule(module: Module) {
+export function encodeModule(module: Module): Uint8Array {
   const output = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
 
-  if (module.types) {
+  if (module.types.items.length > 0) {
     output.push(...encodeTypeSection(module.types));
   }
 
-  if (module.imports) {
+  if (module.imports.items.length > 0) {
     output.push(...encodeImportSection(module.imports));
   }
 
-  if (module.functions) {
+  if (module.functions.items.length > 0) {
     output.push(...encodeFunctionSection(module.functions));
   }
 
-  if (module.tables) {
+  if (module.tables.items.length > 0) {
     output.push(...encodeTableSection(module.tables));
   }
 
-  if (module.memories) {
+  if (module.memories.items.length > 0) {
     output.push(...encodeMemorySection(module.memories));
   }
 
-  if (module.globals) {
+  if (module.globals.items.length > 0) {
     output.push(...encodeGlobalSection(module.globals));
   }
 
-  if (module.exports) {
+  if (module.exports.items.length > 0) {
     output.push(...encodeExportSection(module.exports));
   }
 
@@ -62,15 +63,15 @@ export function encodeModule(module: Module) {
     output.push(...encodeStartSection(module.start));
   }
 
-  if (module.elements) {
+  if (module.elements.items.length > 0) {
     output.push(...encodeElementSection(module.elements));
   }
 
-  if (module.code) {
+  if (module.code.items.length > 0) {
     output.push(...encodeCodeSection(module.code));
   }
 
-  if (module.data) {
+  if (module.data.items.length > 0) {
     output.push(...encodeDataSection(module.data));
   }
 
@@ -78,23 +79,26 @@ export function encodeModule(module: Module) {
     output.push(...encodeDataCountSection(module.dataCount));
   }
 
-  return output;
+  const byteArray = new Uint8Array(output.length);
+  for (let i = 0; i < output.length; i++) {
+    byteArray[i] = output[i];
+  }
+
+  return byteArray;
 }
 
-function encodeSection<T extends { id: number }, U>(
+function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
   section: T,
-  itemsFn: (s: T) => U[],
-  encodeFn: (item: U) => number[]
+  encodeFn: (item: Item) => number[]
 ): number[] {
   const output: number[] = [section.id];
-  const items = itemsFn(section);
   // We push to this temporary array cause we need the size of the
   // section content
   const sectionContent = [];
 
-  sectionContent.push(...toUnsignedLEB128(items.length));
+  sectionContent.push(...toUnsignedLEB128(section.items.length));
 
-  for (const item of items) {
+  for (const item of section.items) {
     sectionContent.push(...encodeFn(item));
   }
 
@@ -105,57 +109,33 @@ function encodeSection<T extends { id: number }, U>(
 }
 
 export function encodeTypeSection(typeSection: TypeSection): number[] {
-  return encodeSection(typeSection, (section) => section.types, encodeFuncType);
+  return encodeSection(typeSection, encodeFuncType);
 }
 
 export function encodeImportSection(importSection: ImportSection): number[] {
-  return encodeSection(
-    importSection,
-    (section) => section.imports,
-    encodeImportEntry
-  );
+  return encodeSection(importSection, encodeImportEntry);
 }
 
 export function encodeFunctionSection(
   functionSection: FunctionSection
 ): number[] {
-  return encodeSection(
-    functionSection,
-    (section) => section.functionTypes,
-    toUnsignedLEB128
-  );
+  return encodeSection(functionSection, toUnsignedLEB128);
 }
 
 export function encodeTableSection(tableSection: TableSection): number[] {
-  return encodeSection(
-    tableSection,
-    (section) => section.tables,
-    encodeTableType
-  );
+  return encodeSection(tableSection, encodeTableType);
 }
 
 export function encodeMemorySection(memorySection: MemorySection): number[] {
-  return encodeSection(
-    memorySection,
-    (section) => section.memories,
-    encodeResizableLimits
-  );
+  return encodeSection(memorySection, encodeResizableLimits);
 }
 
 export function encodeGlobalSection(globalSection: GlobalSection): number[] {
-  return encodeSection(
-    globalSection,
-    (section) => section.globals,
-    encodeGlobal
-  );
+  return encodeSection(globalSection, encodeGlobal);
 }
 
 export function encodeExportSection(exportSection: ExportSection): number[] {
-  return encodeSection(
-    exportSection,
-    (section) => section.exports,
-    encodeExport
-  );
+  return encodeSection(exportSection, encodeExport);
 }
 
 export function encodeStartSection(startSection: StartSection): number[] {
@@ -164,29 +144,26 @@ export function encodeStartSection(startSection: StartSection): number[] {
 }
 
 export function encodeElementSection(elementSection: ElementSection): number[] {
-  return encodeSection(
-    elementSection,
-    (section) => section.elements,
-    encodeElement
-  );
+  return encodeSection(elementSection, encodeElement);
 }
 
 export function encodeCodeSection(codeSection: CodeSection): number[] {
-  return encodeSection(codeSection, (section) => section.code, encodeCode);
+  return encodeSection(codeSection, encodeCode);
 }
 
 export function encodeDataSection(dataSection: DataSection): number[] {
-  return encodeSection(dataSection, (section) => section.data, encodeData);
+  return encodeSection(dataSection, encodeData);
 }
 
 export function encodeDataCountSection(
   dataCountSection: DataCountSection
 ): number[] {
-  return encodeSection(
-    dataCountSection,
-    (section) => [section.dataCount],
-    toUnsignedLEB128
-  );
+  const dataCount = toUnsignedLEB128(dataCountSection.dataCount);
+  return [
+    dataCountSection.id,
+    ...toUnsignedLEB128(dataCount.length),
+    ...dataCount,
+  ];
 }
 
 function encodeData(data: Data): number[] {

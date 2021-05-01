@@ -12,7 +12,7 @@ test('getTypeSectionSize', (t) => {
   t.is(
     getTypeSectionSize({
       id: 1,
-      types: [
+      items: [
         {
           paramTypes: [NumType.i32, NumType.f32],
           returnTypes: [RefType.funcRef, NumType.i64],
@@ -27,7 +27,7 @@ test('getImportSectionSize', (t) => {
   t.is(
     getImportSectionSize({
       id: 2,
-      imports: [
+      items: [
         {
           module: 'std',
           field: 'alloc',
@@ -43,7 +43,7 @@ test('getFunctionSectionSize', (t) => {
   t.is(
     getFunctionSectionSize({
       id: 3,
-      functionTypes: [0, 1, 2, 1],
+      items: [0, 1, 2, 1],
     }),
     5
   );

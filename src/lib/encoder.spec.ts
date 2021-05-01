@@ -5,6 +5,9 @@ import {
   encodeTypeSection,
 } from './encoder';
 import { ExternalKind, NumType, RefType } from './wasm';
+import { createModule } from './builder';
+
+const emptyModule = createModule();
 
 test('encodeModule', (t) => {
   const localVariables = new Map();
@@ -12,13 +15,14 @@ test('encodeModule', (t) => {
 
   t.deepEqual(
     encodeModule({
+      ...emptyModule,
       types: {
         id: 1,
-        types: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
+        items: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
       },
       functions: {
         id: 3,
-        functionTypes: [0],
+        items: [0],
       },
       start: {
         id: 8,
@@ -26,7 +30,7 @@ test('encodeModule', (t) => {
       },
       code: {
         id: 10,
-        code: [{ locals: localVariables, code: [0x20, 0, 0x41, 2, 0x6c] }],
+        items: [{ locals: localVariables, code: [0x20, 0, 0x41, 2, 0x6c] }],
       },
       customSections: [],
     }),
@@ -52,7 +56,6 @@ test('encodeModule', (t) => {
       1,
       0,
       8,
-      2,
       1,
       0,
       10,
@@ -73,9 +76,10 @@ test('encodeModule', (t) => {
 
   t.deepEqual(
     encodeModule({
+      ...emptyModule,
       types: {
         id: 1,
-        types: [
+        items: [
           { paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] },
           {
             paramTypes: [NumType.i32, NumType.i32],
@@ -117,7 +121,7 @@ test('encodeTypeSection', (t) => {
   t.deepEqual(
     encodeTypeSection({
       id: 1,
-      types: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
+      items: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
     }),
     [1, 6, 1, 0x60, 1, 0x7f, 1, 0x70]
   );
@@ -125,7 +129,7 @@ test('encodeTypeSection', (t) => {
   t.deepEqual(
     encodeTypeSection({
       id: 1,
-      types: [
+      items: [
         { paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] },
         {
           paramTypes: [NumType.i32, NumType.i32],
@@ -141,7 +145,7 @@ test('encodeImportSection', (t) => {
   t.deepEqual(
     encodeImportSection({
       id: 2,
-      imports: [
+      items: [
         {
           module: 'std',
           field: 'alloc',
@@ -155,7 +159,7 @@ test('encodeImportSection', (t) => {
   t.deepEqual(
     encodeImportSection({
       id: 2,
-      imports: [
+      items: [
         {
           module: 'std',
           field: 'memory',

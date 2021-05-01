@@ -204,7 +204,7 @@ function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
  * @returns Size of types section in bytes
  */
 export function getTypeSectionSize(typeSection: TypeSection) {
-  return getVecSize(typeSection.types, getFuncTypeSize);
+  return getVecSize(typeSection.items, getFuncTypeSize);
 }
 
 /**
@@ -215,7 +215,7 @@ export function getTypeSectionSize(typeSection: TypeSection) {
  * @returns Size of import section in bytes
  */
 export function getImportSectionSize(importSection: ImportSection) {
-  return getVecSize(importSection.imports, getImportEntrySize);
+  return getVecSize(importSection.items, getImportEntrySize);
 }
 
 /**
@@ -226,7 +226,7 @@ export function getImportSectionSize(importSection: ImportSection) {
  * @returns Size of function section in bytes
  */
 export function getFunctionSectionSize(functionSection: FunctionSection) {
-  return getVecSize(functionSection.functionTypes, getEncodedSize);
+  return getVecSize(functionSection.items, getEncodedSize);
 }
 
 /**
@@ -237,7 +237,7 @@ export function getFunctionSectionSize(functionSection: FunctionSection) {
  * @returns Size of table section in bytes
  */
 export function getTableSectionSize(tableSection: TableSection) {
-  return getVecSize(tableSection.tables, getTableTypeSize);
+  return getVecSize(tableSection.items, getTableTypeSize);
 }
 
 /**
@@ -248,7 +248,7 @@ export function getTableSectionSize(tableSection: TableSection) {
  * @returns Size of memory section in bytes
  */
 export function getMemorySectionSize(memorySection: MemorySection) {
-  return getVecSize(memorySection.memories, getResizeableLimitsSize);
+  return getVecSize(memorySection.items, getResizeableLimitsSize);
 }
 
 /**
@@ -259,7 +259,7 @@ export function getMemorySectionSize(memorySection: MemorySection) {
  * @returns Size of global section in bytes
  */
 export function getGlobalSectionSize(globalSection: GlobalSection) {
-  return getVecSize(globalSection.globals, getGlobalSize);
+  return getVecSize(globalSection.items, getGlobalSize);
 }
 
 /**
@@ -270,7 +270,7 @@ export function getGlobalSectionSize(globalSection: GlobalSection) {
  * @returns Size of export section in bytes
  */
 export function getExportSectionSize(exportSection: ExportSection) {
-  return getVecSize(exportSection.exports, getExportSize);
+  return getVecSize(exportSection.items, getExportSize);
 }
 
 /**
@@ -292,7 +292,7 @@ export function getStartSectionSize(startSection: StartSection) {
  * @returns Size of element section in bytes
  */
 export function getElementSectionSize(elementSection: ElementSection) {
-  return getVecSize(elementSection.elements, getElementSize);
+  return getVecSize(elementSection.items, getElementSize);
 }
 
 /**
@@ -303,7 +303,7 @@ export function getElementSectionSize(elementSection: ElementSection) {
  * @returns Size of code section in bytes
  */
 export function getCodeSectionSize(codeSection: CodeSection) {
-  return getVecSize(codeSection.code, getFunctionBodySize);
+  return getVecSize(codeSection.items, getFunctionBodySize);
 }
 
 /**
@@ -314,7 +314,7 @@ export function getCodeSectionSize(codeSection: CodeSection) {
  * @returns Size of data section in bytes
  */
 export function getDataSectionSize(dataSection: DataSection) {
-  return getVecSize(dataSection.data, getDataSize);
+  return getVecSize(dataSection.items, getDataSize);
 }
 
 /**
