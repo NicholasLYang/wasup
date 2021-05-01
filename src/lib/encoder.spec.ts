@@ -34,7 +34,7 @@ test('encodeModule', (t) => {
       },
       customSections: [],
     }),
-    [
+    new Uint8Array([
       0x00,
       0x61,
       0x73,
@@ -71,7 +71,7 @@ test('encodeModule', (t) => {
       2, // 2
       0x6c, // i32.mul
       0x0b, // end
-    ]
+    ])
   );
 
   t.deepEqual(
@@ -89,7 +89,7 @@ test('encodeModule', (t) => {
       },
       customSections: [],
     }),
-    [
+    new Uint8Array([
       0x00,
       0x61,
       0x73,
@@ -113,7 +113,7 @@ test('encodeModule', (t) => {
       2,
       0x70,
       0x7c,
-    ]
+    ])
   );
 });
 

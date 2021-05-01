@@ -40,7 +40,7 @@ export function getEncodedSize(n: number): number {
  * Converts a number n to unsigned LEB128
  *
  * @param n - Must be an integer.
- * @returns LEB128 encoded integer as a BigInt.
+ * @returns LEB128 encoded integer as a number[].
  */
 export function toUnsignedLEB128(n: number): number[] {
   if (!Number.isInteger(n)) {
@@ -57,4 +57,36 @@ export function toUnsignedLEB128(n: number): number[] {
 
   output.push(n);
   return output;
+}
+
+/**
+ * Converts a number n to unsigned LEB128
+ *
+ * @param buffer - Byte array for encoded values.
+ * @param index - Where we read the value
+ * @returns The integer value at buffer[index] along with the end index + 1.
+ */
+export function fromUnsignedLEB128(
+  buffer: Uint8Array,
+  index: number
+): { index: number; value: number } {
+  if (index >= buffer.length || index < 0 || !Number.isInteger(index)) {
+    throw new RangeError(`Invalid index: ${index}`);
+  }
+
+  let value = 0;
+
+  // Loop until the next to last 7 bytes
+  while ((buffer[index] & 0x80) != 0) {
+    value = value | (buffer[index] & 0x7f);
+    value = value << 7;
+    index += 1;
+  }
+
+  if (buffer[index] === undefined) {
+    throw new RangeError(`Reached end of buffer while decoding LEB128 value`);
+  }
+
+  value = value | (buffer[index] & 0x7f);
+  return { value, index: index + 1 };
 }
