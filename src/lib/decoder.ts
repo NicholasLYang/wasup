@@ -1,19 +1,17 @@
 import { createModule } from './builder';
 import { fromUnsignedLEB128 } from './leb128';
 import {
-  AnySection,
   Export,
   ExternalKind,
   FuncType,
   Global,
   GlobalType,
-  ImportEntry,
+  Import,
   Module,
   NumType,
   OpCode,
   RefType,
   ResizableLimits,
-  Section,
   TableType,
   ValueType,
 } from './wasm';
@@ -25,7 +23,11 @@ interface Decoder {
 }
 
 export function decodeModule(encodedModule: Uint8Array) {
-  const decoder = { index: 0, bytes: encodedModule };
+  const decoder: Decoder = {
+    index: 0,
+    bytes: encodedModule,
+    decodedSections: new Set(),
+  };
   const module = createModule();
   decodeModulePreamble(decoder);
   decodeSection(decoder, module);
@@ -81,7 +83,7 @@ function decodeByte(decoder: Decoder): number {
   return byte;
 }
 
-export function decodeSection(decoder: Decoder, module: Module): AnySection {
+export function decodeSection(decoder: Decoder, module: Module) {
   const id = decodeByte(decoder);
   const size = decodeLEB128(decoder);
   const startIndex = decoder.index;
@@ -197,7 +199,7 @@ function decodeExpr(decoder: Decoder): OpCode[] {
   return opcodes;
 }
 
-function decodeImport(decoder: Decoder): ImportEntry {
+function decodeImport(decoder: Decoder): Import {
   const module = decodeString(decoder);
   const field = decodeString(decoder);
   const kind = decodeByte(decoder);

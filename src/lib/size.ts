@@ -15,7 +15,7 @@ import {
   FuncType,
   Global,
   GlobalSection,
-  ImportEntry,
+  Import,
   ImportSection,
   MemorySection,
   Module,
@@ -49,7 +49,7 @@ function getResizeableLimitsSize(limits: ResizableLimits) {
   return limitsLen;
 }
 
-function getImportEntrySize(importEntry: ImportEntry) {
+function getImportEntrySize(importEntry: Import) {
   const nameLen = new TextEncoder().encode(importEntry.module).length;
   const fieldLen = new TextEncoder().encode(importEntry.field).length;
 

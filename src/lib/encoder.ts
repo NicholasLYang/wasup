@@ -15,7 +15,7 @@ import {
   Global,
   GlobalSection,
   GlobalType,
-  ImportEntry,
+  Import,
   ImportSection,
   MemorySection,
   Module,
@@ -283,7 +283,7 @@ function encodeFuncType(type: FuncType): number[] {
   return output;
 }
 
-function encodeImportEntry(importEntry: ImportEntry): number[] {
+function encodeImportEntry(importEntry: Import): number[] {
   const encoder = new TextEncoder();
   const moduleBytes = encoder.encode(importEntry.module);
   const output = toUnsignedLEB128(moduleBytes.length);

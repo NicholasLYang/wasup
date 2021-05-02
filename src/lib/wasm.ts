@@ -35,7 +35,7 @@ export interface CustomSection {
 }
 
 export type TypeSection = Section<1, FuncType>;
-export type ImportSection = Section<2, ImportEntry>;
+export type ImportSection = Section<2, Import>;
 export type FunctionSection = Section<3, number>;
 export type TableSection = Section<4, TableType>;
 export type MemorySection = Section<5, ResizableLimits>;
@@ -50,22 +50,6 @@ export interface StartSection {
 export type ElementSection = Section<9, Element>;
 export type CodeSection = Section<10, Code>;
 export type DataSection = Section<11, Data>;
-
-// There's likely some really smart TypeScript generics
-// way of doing this but I need a type to return from
-// decodeSection
-export type AnySection =
-  | TypeSection
-  | ImportSection
-  | FunctionSection
-  | TableSection
-  | MemorySection
-  | GlobalSection
-  | ExportSection
-  | StartSection
-  | ElementSection
-  | CodeSection
-  | DataSection;
 
 // Btw does Data Count not sound like
 // a evil vampire who steals precious
@@ -82,7 +66,7 @@ export enum ExternalKind {
   Global = 3,
 }
 
-export interface ImportEntry {
+export interface Import {
   module: string;
   field: string;
   description:
