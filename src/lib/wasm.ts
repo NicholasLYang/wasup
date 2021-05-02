@@ -51,6 +51,22 @@ export type ElementSection = Section<9, Element>;
 export type CodeSection = Section<10, Code>;
 export type DataSection = Section<11, Data>;
 
+// There's likely some really smart TypeScript generics
+// way of doing this but I need a type to return from
+// decodeSection
+export type AnySection =
+  | TypeSection
+  | ImportSection
+  | FunctionSection
+  | TableSection
+  | MemorySection
+  | GlobalSection
+  | ExportSection
+  | StartSection
+  | ElementSection
+  | CodeSection
+  | DataSection;
+
 // Btw does Data Count not sound like
 // a evil vampire who steals precious
 // data from the innocent? Just me?
