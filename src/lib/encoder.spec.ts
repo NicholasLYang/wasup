@@ -1,11 +1,11 @@
 import test from 'ava';
+import { createModule } from './builder';
 import {
   encodeImportSection,
   encodeModule,
   encodeTypeSection,
 } from './encoder';
 import { ExternalKind, NumType, RefType } from './wasm';
-import { createModule } from './builder';
 
 const emptyModule = createModule();
 

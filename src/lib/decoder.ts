@@ -1,6 +1,10 @@
 import { createModule } from './builder';
 import { fromUnsignedLEB128 } from './leb128';
 import {
+  Code,
+  Data,
+  Element,
+  ElementKind,
   Export,
   ExternalKind,
   FuncType,
@@ -30,7 +34,12 @@ export function decodeModule(encodedModule: Uint8Array) {
   };
   const module = createModule();
   decodeModulePreamble(decoder);
-  decodeSection(decoder, module);
+
+  while (decoder.bytes[decoder.index] !== undefined) {
+    decodeSection(decoder, module);
+  }
+
+  return module;
 }
 
 function decodeModulePreamble(decoder: Decoder) {
@@ -130,6 +139,23 @@ export function decodeSection(decoder: Decoder, module: Module) {
       module.start = { id: 8, startFunction: decodeLEB128(decoder) };
       break;
     }
+    case 9: {
+      module.elements.items = decodeVector(decoder, decodeElement);
+      break;
+    }
+    case 10: {
+      module.code.items = decodeVector(decoder, decodeCode);
+      break;
+    }
+    case 11: {
+      module.data.items = decodeVector(decoder, decodeData);
+      break;
+    }
+    case 12: {
+      const dataCount = decodeLEB128(decoder);
+      module.dataCount = { id: 12, dataCount };
+      break;
+    }
     default: {
       throw new Error(`Unexpected section id: ${id}`);
     }
@@ -155,6 +181,135 @@ function decodeVector<T>(
   }
 
   return items;
+}
+
+function decodeData(decoder: Decoder): Data {
+  const id = decodeByte(decoder);
+
+  switch (id) {
+    case 0x00: {
+      const offsetExpr = decodeExpr(decoder);
+      const length = decodeLEB128(decoder);
+      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+
+      return { id: 0x00, offsetExpr, bytes };
+    }
+    case 0x01: {
+      const length = decodeLEB128(decoder);
+      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+
+      return { id: 0x01, bytes };
+    }
+    case 0x02: {
+      const memoryIndex = decodeLEB128(decoder);
+      const offsetExpr = decodeExpr(decoder);
+      const length = decodeLEB128(decoder);
+      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+
+      return { id: 0x02, memoryIndex, offsetExpr, bytes };
+    }
+    default: {
+      throw new Error(`Unexpected id for data segment: ${id}`);
+    }
+  }
+}
+
+function decodeCode(decoder: Decoder): Code {
+  const size = decodeLEB128(decoder);
+  const startIndex = decoder.index;
+
+  const localsArray = decodeVector(decoder, (decoder) => {
+    const count = decodeLEB128(decoder);
+    const type = decodeValueType(decoder);
+    return { count, type };
+  });
+
+  const locals = new Map();
+
+  for (const { count, type } of localsArray) {
+    locals.set(type, count);
+  }
+
+  const code = decodeExpr(decoder);
+
+  if (startIndex + size != decoder.index) {
+    const actualSize = decoder.index - startIndex;
+    throw new Error(
+      `Section is not expected size, instead is ${actualSize} bytes`
+    );
+  }
+
+  return { locals, code };
+}
+
+function decodeElement(decoder: Decoder): Element {
+  const id = decodeByte(decoder);
+
+  switch (id) {
+    case 0x00: {
+      const offsetExpr = decodeExpr(decoder);
+      const functionIds = decodeVector(decoder, decodeLEB128);
+      return { id: 0x00, functionIds, offsetExpr };
+    }
+    case 0x01: {
+      const kind = decodeElementKind(decoder);
+      const functionIds = decodeVector(decoder, decodeLEB128);
+      return { id: 0x01, functionIds, kind };
+    }
+    case 0x02: {
+      const tableIndex = decodeLEB128(decoder);
+      const offsetExpr = decodeExpr(decoder);
+      const kind = decodeElementKind(decoder);
+      const functionIds = decodeVector(decoder, decodeLEB128);
+
+      return { id: 0x02, tableIndex, offsetExpr, kind, functionIds };
+    }
+    case 0x03: {
+      const kind = decodeElementKind(decoder);
+      const functionIds = decodeVector(decoder, decodeLEB128);
+
+      return { id: 0x03, kind, functionIds };
+    }
+    case 0x04: {
+      const offsetExpr = decodeExpr(decoder);
+      const initExprs = decodeVector(decoder, decodeExpr);
+
+      return { id: 0x04, offsetExpr, initExprs };
+    }
+    case 0x05: {
+      const refType = decodeRefType(decoder);
+      const initExprs = decodeVector(decoder, decodeExpr);
+
+      return { id: 0x05, refType, initExprs };
+    }
+    case 0x06: {
+      const tableIndex = decodeLEB128(decoder);
+      const offsetExpr = decodeExpr(decoder);
+      const refType = decodeRefType(decoder);
+      const initExprs = decodeVector(decoder, decodeExpr);
+
+      return { id: 0x06, tableIndex, refType, initExprs, offsetExpr };
+    }
+    case 0x07: {
+      const refType = decodeRefType(decoder);
+      const initExprs = decodeVector(decoder, decodeExpr);
+
+      return { id: 0x07, refType, initExprs };
+    }
+    default: {
+      throw new Error(`Unexpected element id: ${id.toString(16)}`);
+    }
+  }
+}
+
+function decodeElementKind(decoder: Decoder): ElementKind {
+  const kind = decodeByte(decoder);
+
+  if (kind != ElementKind.FuncRef) {
+    throw new Error(`Invalid element kind: ${kind.toString(16)}`);
+  }
+
+  return kind;
 }
 
 function decodeExport(decoder: Decoder): Export {
@@ -196,6 +351,7 @@ function decodeExpr(decoder: Decoder): OpCode[] {
     i += 1;
   }
 
+  decoder.index = i + 1;
   return opcodes;
 }
 
@@ -314,6 +470,19 @@ function decodeFuncType(decoder: Decoder): FuncType {
   const returnTypes = decodeVector(decoder, decodeValueType);
 
   return { paramTypes, returnTypes };
+}
+
+function decodeRefType(decoder: Decoder): RefType {
+  const refType = decodeByte(decoder);
+
+  switch (refType) {
+    case 0x70:
+      return RefType.funcRef;
+    case 0x6f:
+      return RefType.externRef;
+    default:
+      throw new Error(`Expected ref type, received ${refType.toString(16)}`);
+  }
 }
 
 function decodeValueType(decoder: Decoder): ValueType {

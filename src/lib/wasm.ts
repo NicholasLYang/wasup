@@ -179,7 +179,7 @@ export type Data =
       id: 0x02;
       memoryIndex: number;
       offsetExpr: OpCode[];
-      bytes: [];
+      bytes: Uint8Array;
     };
 
 export interface Export {
