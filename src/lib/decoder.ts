@@ -26,6 +26,22 @@ interface Decoder {
   decodedSections: Set<number>;
 }
 
+const SECTION_NAMES = [
+  'custom',
+  'types',
+  'imports',
+  'functions',
+  'tables',
+  'memories',
+  'globals',
+  'exports',
+  'start',
+  'elements',
+  'code',
+  'data',
+  'data count',
+];
+
 export function decodeModule(encodedModule: Uint8Array) {
   const decoder: Decoder = {
     index: 0,
@@ -106,7 +122,20 @@ export function decodeSection(decoder: Decoder, module: Module) {
     decoder.decodedSections.add(id);
   }
 
+  console.log(
+    `DECODING ${SECTION_NAMES[id]} INDEX IS ${startIndex.toString(
+      16
+    )} LENGTH IS ${size}`
+  );
+
   switch (id) {
+    case 0: {
+      const name = decodeString(decoder);
+      const contents = decoder.bytes.slice(decoder.index, startIndex + size);
+      module.customSections.push({ id: 0, name, contents });
+      decoder.index = startIndex + size;
+      break;
+    }
     case 1: {
       module.types.items = decodeVector(decoder, decodeFuncType);
       break;
@@ -157,14 +186,16 @@ export function decodeSection(decoder: Decoder, module: Module) {
       break;
     }
     default: {
-      throw new Error(`Unexpected section id: ${id}`);
+      throw new Error(
+        `${decoder.index.toString(16)}: Unexpected section id: ${id}`
+      );
     }
   }
 
   if (decoder.index !== startIndex + size) {
     const actualSize = decoder.index - startIndex;
     throw new Error(
-      `Section is not ${size} bytes long, instead is ${actualSize} bytes long`
+      `${SECTION_NAMES[id]} section is not ${size} bytes long, instead is ${actualSize} bytes long`
     );
   }
 }
@@ -183,28 +214,33 @@ function decodeVector<T>(
   return items;
 }
 
+function decodeByteVector(decoder: Decoder): Uint8Array {
+  const length = decodeLEB128(decoder);
+  const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+  decoder.index = decoder.index + length + 1;
+
+  return bytes;
+}
+
 function decodeData(decoder: Decoder): Data {
   const id = decodeByte(decoder);
 
   switch (id) {
     case 0x00: {
       const offsetExpr = decodeExpr(decoder);
-      const length = decodeLEB128(decoder);
-      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+      const bytes = decodeByteVector(decoder);
 
       return { id: 0x00, offsetExpr, bytes };
     }
     case 0x01: {
-      const length = decodeLEB128(decoder);
-      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+      const bytes = decodeByteVector(decoder);
 
       return { id: 0x01, bytes };
     }
     case 0x02: {
       const memoryIndex = decodeLEB128(decoder);
       const offsetExpr = decodeExpr(decoder);
-      const length = decodeLEB128(decoder);
-      const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
+      const bytes = decodeByteVector(decoder);
 
       return { id: 0x02, memoryIndex, offsetExpr, bytes };
     }
@@ -235,7 +271,9 @@ function decodeCode(decoder: Decoder): Code {
   if (startIndex + size != decoder.index) {
     const actualSize = decoder.index - startIndex;
     throw new Error(
-      `Section is not expected size, instead is ${actualSize} bytes`
+      `${startIndex.toString(
+        16
+      )}: code body is not expected size: ${size} bytes, instead is ${actualSize} bytes`
     );
   }
 
@@ -452,7 +490,7 @@ function decodeString(decoder: Decoder): string {
   const length = decodeLEB128(decoder);
   const strBytes = decoder.bytes.slice(decoder.index, decoder.index + length);
   const textDecoder = new TextDecoder();
-  decoder.index = decoder.index + length + 1;
+  decoder.index = decoder.index + length;
   return textDecoder.decode(strBytes);
 }
 
