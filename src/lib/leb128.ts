@@ -59,10 +59,6 @@ export function toUnsignedLEB128(n: number): number[] {
   return output;
 }
 
-function dec2bin(dec) {
-  return (dec >>> 0).toString(2);
-}
-
 /**
  * Converts a number n to unsigned LEB128
  *
@@ -81,15 +77,18 @@ export function fromUnsignedLEB128(
   let value = 0;
   let shiftOffset = 0;
   // Loop until the next to last 7 bytes
-  while ((buffer[index] & 0x80) != 0) {
+  while (true) {
     value = value | ((buffer[index] & 0x7f) << shiftOffset);
     shiftOffset += 7;
+    if ((buffer[index] & 0x80) === 0) {
+      break;
+    }
     index += 1;
   }
+
   if (buffer[index] === undefined) {
     throw new RangeError(`Reached end of buffer while decoding LEB128 value`);
   }
 
-  value = value | ((buffer[index] & 0x7f) << shiftOffset);
   return { value, index: index + 1 };
 }

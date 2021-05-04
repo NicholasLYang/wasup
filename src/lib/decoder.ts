@@ -11,6 +11,7 @@ import {
   Global,
   GlobalType,
   Import,
+  Instruction,
   Module,
   NumType,
   OpCode,
@@ -267,8 +268,11 @@ function decodeCode(decoder: Decoder): Code {
   }
 
   const code = decodeExpr(decoder);
+  console.log(startIndex);
+  console.log(decoder.index.toString(16));
+  console.log('BYTE: ' + decoder.bytes[decoder.index].toString(16));
 
-  if (startIndex + size != decoder.index) {
+  if (startIndex + size !== decoder.index) {
     const actualSize = decoder.index - startIndex;
     throw new Error(
       `${startIndex.toString(
@@ -375,21 +379,41 @@ function decodeGlobal(decoder: Decoder): Global {
   return { type, initExpr };
 }
 
+function decodeInstruction(decoder: Decoder): [Instruction, ...number[]] {
+  const instr = decodeByte(decoder);
+  switch (instr) {
+    case Instruction.Unreachable:
+    case Instruction.Nop:
+    case Instruction.Return:
+    case Instruction.RefIsNull:
+    case Instruction.Drop:
+    case Instruction.Select:
+      return [instr];
+    case Instruction.Block: {
+      const blockType = decodeValueType(decoder);
+    }
+    default:
+      if (instr >= Instruction.I32EqZ && instr <= Instruction.I64Extend32S) {
+        return [instr];
+      }
+  }
+  throw new Error(`Unexpected instruction: ${instr.toString(16)}`);
+}
+
 function decodeExpr(decoder: Decoder): OpCode[] {
   let i = decoder.index;
   const opcodes = [];
-  while (decoder.bytes[i] !== 0x0b) {
-    if (i >= decoder.bytes.length) {
-      throw new Error(
-        `Reached end of program without finding end of expression (0x0b)`
-      );
-    }
+  let blockDepth = 1;
 
+  while (i < decoder.bytes.length) {
     opcodes.push(decoder.bytes[i]);
     i += 1;
   }
 
-  decoder.index = i + 1;
+  throw new Error(
+    `Reached end of program without finding end of expression (0x0b)`
+  );
+
   return opcodes;
 }
 
@@ -498,7 +522,9 @@ function decodeFuncType(decoder: Decoder): FuncType {
   const funcTypeByte = decodeByte(decoder);
   if (funcTypeByte != 0x60) {
     throw new Error(
-      `Func type must start with 0x60, instead found ${funcTypeByte.toString(
+      `${(decoder.index - 1).toString(
+        16
+      )} Func type must start with 0x60, instead found ${funcTypeByte.toString(
         16
       )}`
     );

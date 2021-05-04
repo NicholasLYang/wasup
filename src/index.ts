@@ -7,5 +7,5 @@ import * as fs from 'fs';
 import { decodeModule } from './lib/decoder';
 
 //@ts-ignore
-const myModule = fs.readFileSync('example.wasm');
+const myModule = fs.readFileSync('example2.wasm');
 console.log(decodeModule(myModule));
