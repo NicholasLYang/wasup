@@ -60,13 +60,14 @@ export function toUnsignedLEB128(n: number): number[] {
 }
 
 /**
- * Converts a number n to unsigned LEB128
+ * Converts an unsigned LEB128 number to a JavaScript number, along with the
+ * new end index
  *
  * @param buffer - Byte array for encoded values.
  * @param index - Where we read the value
  * @returns The integer value at buffer[index] along with the end index + 1.
  */
-export function fromUnsignedLEB128(
+export function fromLEB128U(
   buffer: Uint8Array,
   index: number
 ): { index: number; value: number } {
@@ -81,6 +82,44 @@ export function fromUnsignedLEB128(
     value = value | ((buffer[index] & 0x7f) << shiftOffset);
     shiftOffset += 7;
     if ((buffer[index] & 0x80) === 0) {
+      break;
+    }
+    index += 1;
+  }
+
+  if (buffer[index] === undefined) {
+    throw new RangeError(`Reached end of buffer while decoding LEB128 value`);
+  }
+
+  return { value, index: index + 1 };
+}
+
+/**
+ * Converts a signed LEB128 number to a JavaScript number, returns the
+ * number and the updated buffer index
+ *
+ * @param buffer - Byte array for encoded values.
+ * @param index - Where we read the value
+ * @returns The integer value at buffer[index] along with the end index + 1.
+ */
+export function fromLEB128S(
+  buffer: Uint8Array,
+  index: number
+): { index: number; value: number } {
+  if (index >= buffer.length || index < 0 || !Number.isInteger(index)) {
+    throw new RangeError(`Invalid index: ${index}`);
+  }
+
+  let value = 0;
+  let shiftOffset = 0;
+  // Loop until the next to last 7 bytes
+  while (true) {
+    value = value | ((buffer[index] & 0x7f) << shiftOffset);
+    shiftOffset += 7;
+    if ((buffer[index] & 0x80) === 0) {
+      if (shiftOffset < 32 && (buffer[index] & 0x40) !== 0) {
+        value = value | (~0 << shiftOffset);
+      }
       break;
     }
     index += 1;

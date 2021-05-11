@@ -1,10 +1,10 @@
-import { ExternalKind, FuncType, LocalVariables, Module, OpCode } from './wasm';
+import { ExternalKind, FuncType, LocalVariables, Module } from './wasm';
 
 interface Func {
   name?: string;
   locals?: LocalVariables;
   type: FuncType;
-  code: OpCode[];
+  code: Uint8Array[];
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createModule } from './builder';
-import { fromUnsignedLEB128 } from './leb128';
+import { fromLEB128S, fromLEB128U } from './leb128';
 import {
+  BlockType,
   Code,
   Data,
   Element,
@@ -11,13 +12,16 @@ import {
   Global,
   GlobalType,
   Import,
+  InstrType,
   Instruction,
   Module,
   NumType,
   OpCode,
+  OtherInstrType,
   RefType,
   ResizableLimits,
   TableType,
+  ValueBlockType,
   ValueType,
 } from './wasm';
 
@@ -96,9 +100,16 @@ function decodeModulePreamble(decoder: Decoder) {
   decoder.index = 8;
 }
 
-// Small wrapper on fromUnsignedLEB128 to mutate decoder
-function decodeLEB128(decoder: Decoder): number {
-  const { index, value } = fromUnsignedLEB128(decoder.bytes, decoder.index);
+// Small wrapper on fromLEB128U to mutate decoder
+function decodeLEB128U(decoder: Decoder): number {
+  const { index, value } = fromLEB128U(decoder.bytes, decoder.index);
+  decoder.index = index;
+  return value;
+}
+
+// Small wrapper on fromLEB128S to mutate decoder
+function decodeLEB128S(decoder: Decoder): number {
+  const { index, value } = fromLEB128S(decoder.bytes, decoder.index);
   decoder.index = index;
   return value;
 }
@@ -111,7 +122,7 @@ function decodeByte(decoder: Decoder): number {
 
 export function decodeSection(decoder: Decoder, module: Module) {
   const id = decodeByte(decoder);
-  const size = decodeLEB128(decoder);
+  const size = decodeLEB128U(decoder);
   const startIndex = decoder.index;
 
   if (id !== 0) {
@@ -146,7 +157,7 @@ export function decodeSection(decoder: Decoder, module: Module) {
       break;
     }
     case 3: {
-      module.functions.items = decodeVector(decoder, decodeLEB128);
+      module.functions.items = decodeVector(decoder, decodeLEB128U);
       break;
     }
     case 4: {
@@ -166,7 +177,7 @@ export function decodeSection(decoder: Decoder, module: Module) {
       break;
     }
     case 8: {
-      module.start = { id: 8, startFunction: decodeLEB128(decoder) };
+      module.start = { id: 8, startFunction: decodeLEB128U(decoder) };
       break;
     }
     case 9: {
@@ -182,7 +193,7 @@ export function decodeSection(decoder: Decoder, module: Module) {
       break;
     }
     case 12: {
-      const dataCount = decodeLEB128(decoder);
+      const dataCount = decodeLEB128U(decoder);
       module.dataCount = { id: 12, dataCount };
       break;
     }
@@ -205,7 +216,7 @@ function decodeVector<T>(
   decoder: Decoder,
   decodeFn: (decoder: Decoder) => T
 ): T[] {
-  const length = decodeLEB128(decoder);
+  const length = decodeLEB128U(decoder);
   const items = [];
 
   for (let i = 0; i < length; i++) {
@@ -216,7 +227,7 @@ function decodeVector<T>(
 }
 
 function decodeByteVector(decoder: Decoder): Uint8Array {
-  const length = decodeLEB128(decoder);
+  const length = decodeLEB128U(decoder);
   const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
   decoder.index = decoder.index + length + 1;
 
@@ -239,7 +250,7 @@ function decodeData(decoder: Decoder): Data {
       return { id: 0x01, bytes };
     }
     case 0x02: {
-      const memoryIndex = decodeLEB128(decoder);
+      const memoryIndex = decodeLEB128U(decoder);
       const offsetExpr = decodeExpr(decoder);
       const bytes = decodeByteVector(decoder);
 
@@ -252,11 +263,11 @@ function decodeData(decoder: Decoder): Data {
 }
 
 function decodeCode(decoder: Decoder): Code {
-  const size = decodeLEB128(decoder);
+  const size = decodeLEB128U(decoder);
   const startIndex = decoder.index;
 
   const localsArray = decodeVector(decoder, (decoder) => {
-    const count = decodeLEB128(decoder);
+    const count = decodeLEB128U(decoder);
     const type = decodeValueType(decoder);
     return { count, type };
   });
@@ -266,20 +277,8 @@ function decodeCode(decoder: Decoder): Code {
   for (const { count, type } of localsArray) {
     locals.set(type, count);
   }
-
-  const code = decodeExpr(decoder);
-  console.log(startIndex);
-  console.log(decoder.index.toString(16));
-  console.log('BYTE: ' + decoder.bytes[decoder.index].toString(16));
-
-  if (startIndex + size !== decoder.index) {
-    const actualSize = decoder.index - startIndex;
-    throw new Error(
-      `${startIndex.toString(
-        16
-      )}: code body is not expected size: ${size} bytes, instead is ${actualSize} bytes`
-    );
-  }
+  const codeBodySize = size - (decoder.index - startIndex);
+  const code = decoder.bytes.slice(decoder.index, decoder.index + codeBodySize);
 
   return { locals, code };
 }
@@ -290,25 +289,25 @@ function decodeElement(decoder: Decoder): Element {
   switch (id) {
     case 0x00: {
       const offsetExpr = decodeExpr(decoder);
-      const functionIds = decodeVector(decoder, decodeLEB128);
+      const functionIds = decodeVector(decoder, decodeLEB128U);
       return { id: 0x00, functionIds, offsetExpr };
     }
     case 0x01: {
       const kind = decodeElementKind(decoder);
-      const functionIds = decodeVector(decoder, decodeLEB128);
+      const functionIds = decodeVector(decoder, decodeLEB128U);
       return { id: 0x01, functionIds, kind };
     }
     case 0x02: {
-      const tableIndex = decodeLEB128(decoder);
+      const tableIndex = decodeLEB128U(decoder);
       const offsetExpr = decodeExpr(decoder);
       const kind = decodeElementKind(decoder);
-      const functionIds = decodeVector(decoder, decodeLEB128);
+      const functionIds = decodeVector(decoder, decodeLEB128U);
 
       return { id: 0x02, tableIndex, offsetExpr, kind, functionIds };
     }
     case 0x03: {
       const kind = decodeElementKind(decoder);
-      const functionIds = decodeVector(decoder, decodeLEB128);
+      const functionIds = decodeVector(decoder, decodeLEB128U);
 
       return { id: 0x03, kind, functionIds };
     }
@@ -325,7 +324,7 @@ function decodeElement(decoder: Decoder): Element {
       return { id: 0x05, refType, initExprs };
     }
     case 0x06: {
-      const tableIndex = decodeLEB128(decoder);
+      const tableIndex = decodeLEB128U(decoder);
       const offsetExpr = decodeExpr(decoder);
       const refType = decodeRefType(decoder);
       const initExprs = decodeVector(decoder, decodeExpr);
@@ -354,10 +353,29 @@ function decodeElementKind(decoder: Decoder): ElementKind {
   return kind;
 }
 
+function decodeBlockType(decoder: Decoder): BlockType {
+  const type = decodeLEB128S(decoder);
+
+  switch (type) {
+    case ValueBlockType.i32:
+    case ValueBlockType.i64:
+    case ValueBlockType.f32:
+    case ValueBlockType.f64:
+    case ValueBlockType.AnyFunc:
+    case ValueBlockType.Empty:
+      return { valueType: type };
+    default:
+      if (type > 0) {
+        return { typeIndex: type };
+      }
+      throw new Error(`Unexpected block type: ${type.toString(16)}`);
+  }
+}
+
 function decodeExport(decoder: Decoder): Export {
   const name = decodeString(decoder);
   const kind = decodeByte(decoder);
-  const index = decodeLEB128(decoder);
+  const index = decodeLEB128U(decoder);
 
   switch (kind) {
     case ExternalKind.Function:
@@ -379,40 +397,154 @@ function decodeGlobal(decoder: Decoder): Global {
   return { type, initExpr };
 }
 
-function decodeInstruction(decoder: Decoder): [Instruction, ...number[]] {
+function decodeInstruction(decoder: Decoder): Instruction {
   const instr = decodeByte(decoder);
   switch (instr) {
-    case Instruction.Unreachable:
-    case Instruction.Nop:
-    case Instruction.Return:
-    case Instruction.RefIsNull:
-    case Instruction.Drop:
-    case Instruction.Select:
+    case InstrType.Unreachable:
+    case InstrType.Nop:
+    case InstrType.Return:
+    case InstrType.RefIsNull:
+    case InstrType.Drop:
+    case InstrType.Select:
       return [instr];
-    case Instruction.Block: {
-      const blockType = decodeValueType(decoder);
+    case InstrType.Block:
+    case InstrType.Loop:
+    case InstrType.If: {
+      const blockType = decodeBlockType(decoder);
+      return [instr, blockType];
+    }
+    case InstrType.Br:
+    case InstrType.BrIf:
+    case InstrType.Call:
+    case InstrType.RefFunc:
+    case InstrType.LocalGet:
+    case InstrType.LocalSet:
+    case InstrType.LocalTee:
+    case InstrType.GlobalGet:
+    case InstrType.GlobalSet: {
+      const index = decodeLEB128U(decoder);
+      return [instr, index];
+    }
+    case InstrType.Other: {
+      const otherInstrType = decodeLEB128U(decoder);
+      switch (otherInstrType) {
+        case OtherInstrType.TableInit:
+        case OtherInstrType.TableCopy: {
+          const index1 = decodeLEB128U(decoder);
+          const index2 = decodeLEB128U(decoder);
+          return [instr, otherInstrType, index1, index2];
+        }
+        case OtherInstrType.ElemDrop:
+        case OtherInstrType.TableGrow:
+        case OtherInstrType.TableSize:
+        case OtherInstrType.TableFill:
+        case OtherInstrType.DataDrop: {
+          const index = decodeLEB128U(decoder);
+          return [instr, otherInstrType, index];
+        }
+        case OtherInstrType.MemoryCopy: {
+          const byte1 = decodeByte(decoder);
+          const byte2 = decodeByte(decoder);
+
+          if (byte1 !== 0 || byte2 !== 0) {
+            throw new Error(`Expected 0x00 0x00 for memory.copy instruction`);
+          }
+
+          return [instr, otherInstrType];
+        }
+        case OtherInstrType.MemoryFill: {
+          const byte = decodeByte(decoder);
+
+          if (byte !== 0) {
+            throw new Error(`Expected 0x00 for memory.fill instruction`);
+          }
+
+          return [instr, otherInstrType];
+        }
+        default: {
+          throw new Error(
+            `Unexpected instruction: ${otherInstrType.toString(16)}`
+          );
+        }
+      }
+    }
+    case InstrType.I32Load:
+    case InstrType.I64Load:
+    case InstrType.F32Load:
+    case InstrType.F64Load:
+    case InstrType.I32Load8S:
+    case InstrType.I32Load8U:
+    case InstrType.I32Load16S:
+    case InstrType.I32Load16U:
+    case InstrType.I64Load8S:
+    case InstrType.I64Load8U:
+    case InstrType.I64Load16S:
+    case InstrType.I64Load16U:
+    case InstrType.I64Load32S:
+    case InstrType.I64Load32U:
+    case InstrType.I32Store:
+    case InstrType.I64Store:
+    case InstrType.F32Store:
+    case InstrType.F64Store:
+    case InstrType.I32Store8:
+    case InstrType.I32Store16:
+    case InstrType.I64Store8:
+    case InstrType.I64Store16:
+    case InstrType.I64Store32:
+    case InstrType.CallIndirect: {
+      const index1 = decodeLEB128U(decoder);
+      const index2 = decodeLEB128U(decoder);
+      return [instr, index1, index2];
+    }
+    case InstrType.BrTable: {
+      const labels = decodeVector(decoder, decodeLEB128U);
+      const defaultLabel = decodeLEB128U(decoder);
+
+      return [instr, ...labels, defaultLabel];
+    }
+    case InstrType.RefNull: {
+      const refType = decodeRefType(decoder);
+      return [instr, refType];
+    }
+    case InstrType.SelectT: {
+      const types = decodeVector(decoder, decodeValueType);
+      return [instr, ...types];
+    }
+    case InstrType.MemorySize: {
+      const byte = decodeByte(decoder);
+      if (byte !== 0x00) {
+        throw new Error(`Expected 0x00 after 0x3f for memory.size instruction`);
+      }
+      return [instr];
+    }
+    case InstrType.MemoryGrow: {
+      const byte = decodeByte(decoder);
+      if (byte !== 0x00) {
+        throw new Error(`Expected 0x00 after 0x40 for memory.grow instruction`);
+      }
+      return [instr];
     }
     default:
-      if (instr >= Instruction.I32EqZ && instr <= Instruction.I64Extend32S) {
+      if (instr >= InstrType.I32EqZ && instr <= InstrType.I64Extend32S) {
         return [instr];
       }
   }
   throw new Error(`Unexpected instruction: ${instr.toString(16)}`);
 }
 
-function decodeExpr(decoder: Decoder): OpCode[] {
+function decodeExpr(decoder: Decoder): Uint8Array {
   let i = decoder.index;
   const opcodes = [];
-  let blockDepth = 1;
 
-  while (i < decoder.bytes.length) {
+  while (decoder.bytes[i] !== 0x0b) {
+    if (decoder.bytes[i] === undefined) {
+      throw new Error(
+        `Reached end of program without finding end of expression (0x0b)`
+      );
+    }
     opcodes.push(decoder.bytes[i]);
     i += 1;
   }
-
-  throw new Error(
-    `Reached end of program without finding end of expression (0x0b)`
-  );
 
   return opcodes;
 }
@@ -424,7 +556,7 @@ function decodeImport(decoder: Decoder): Import {
 
   switch (kind) {
     case 0x00: {
-      const typeIndex = decodeLEB128(decoder);
+      const typeIndex = decodeLEB128U(decoder);
       return { field, module, description: { kind, typeIndex } };
     }
     case 0x01: {
@@ -491,12 +623,12 @@ function decodeResizableLimits(decoder: Decoder): ResizableLimits {
 
   switch (isMax) {
     case 0x00: {
-      const minimum = decodeLEB128(decoder);
+      const minimum = decodeLEB128U(decoder);
       return { minimum };
     }
     case 0x01: {
-      const minimum = decodeLEB128(decoder);
-      const maximum = decodeLEB128(decoder);
+      const minimum = decodeLEB128U(decoder);
+      const maximum = decodeLEB128U(decoder);
       return { minimum, maximum };
     }
     default: {
@@ -511,7 +643,7 @@ function decodeResizableLimits(decoder: Decoder): ResizableLimits {
 // call because it's a little inefficient to convert bytes
 // to numbers then back to bytes then to a string
 function decodeString(decoder: Decoder): string {
-  const length = decodeLEB128(decoder);
+  const length = decodeLEB128U(decoder);
   const strBytes = decoder.bytes.slice(decoder.index, decoder.index + length);
   const textDecoder = new TextDecoder();
   decoder.index = decoder.index + length;

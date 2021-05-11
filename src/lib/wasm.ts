@@ -15,6 +15,20 @@ export enum RefType {
   externRef = 0x6f,
 }
 
+// This is a separate type because
+// we need this type to be encoded
+// as a signed LEB128
+export enum ValueBlockType {
+  i32 = -0x01,
+  i64 = -0x02,
+  f32 = -0x03,
+  f64 = -0x04,
+  AnyFunc = -0x20,
+  Empty = -0x40,
+}
+
+export type BlockType = { valueType: ValueBlockType } | { typeIndex: number };
+
 export type ValueType = RefType | NumType;
 
 export interface FuncType {
@@ -105,7 +119,7 @@ export interface GlobalType {
 
 export interface Global {
   type: GlobalType;
-  initExpr: OpCode[];
+  initExpr: Uint8Array;
 }
 
 export enum ElementKind {
@@ -115,7 +129,7 @@ export enum ElementKind {
 export type Element =
   | {
       id: 0x00; // Active mode
-      offsetExpr: OpCode[];
+      offsetExpr: Uint8Array;
       functionIds: FuncId[];
     }
   | {
@@ -126,7 +140,7 @@ export type Element =
   | {
       id: 0x02; // Active
       tableIndex: number;
-      offsetExpr: OpCode[];
+      offsetExpr: Uint8Array;
       kind: ElementKind;
       functionIds: FuncId[];
     }
@@ -137,38 +151,38 @@ export type Element =
     }
   | {
       id: 0x04; // Active
-      offsetExpr: OpCode[];
-      initExprs: OpCode[][];
+      offsetExpr: Uint8Array;
+      initExprs: Uint8Array[];
     }
   | {
       id: 0x05; // Passive
       refType: RefType;
-      initExprs: OpCode[][];
+      initExprs: Uint8Array[];
     }
   | {
       id: 0x06; // Active
       tableIndex: number;
-      offsetExpr: OpCode[];
+      offsetExpr: Uint8Array;
       refType: RefType;
-      initExprs: OpCode[][];
+      initExprs: Uint8Array[];
     }
   | {
       id: 0x07; // Declarative
       refType: RefType;
-      initExprs: OpCode[][];
+      initExprs: Uint8Array[];
     };
 
 export type LocalVariables = Map<ValueType, number>;
 
 export interface Code {
   locals: LocalVariables;
-  code: OpCode[];
+  code: Uint8Array;
 }
 
 export type Data =
   | {
       id: 0x00;
-      offsetExpr: OpCode[];
+      offsetExpr: Uint8Array;
       bytes: Uint8Array;
     }
   | {
@@ -178,7 +192,7 @@ export type Data =
   | {
       id: 0x02;
       memoryIndex: number;
-      offsetExpr: OpCode[];
+      offsetExpr: Uint8Array;
       bytes: Uint8Array;
     };
 
@@ -187,8 +201,6 @@ export interface Export {
   kind: ExternalKind;
   index: number;
 }
-
-export type OpCode = number;
 
 export interface Module {
   types: TypeSection;
@@ -206,7 +218,7 @@ export interface Module {
   customSections: CustomSection[];
 }
 
-export enum Instruction {
+export enum InstrType {
   Unreachable = 0x00,
   Nop = 0x01,
   Block = 0x02,
@@ -230,72 +242,74 @@ export enum Instruction {
   LocalTee = 0x22,
   GlobalGet = 0x23,
   GlobalSet = 0x24,
+  TableGet,
+  TableSet,
   I32Load = 0x28,
-  I64Load = 0x29,
-  F32Load = 0x2a,
-  F64Load = 0x2b,
-  I32Load8S = 0x2c,
-  I32Load8U = 0x2d,
-  I32Load16S = 0x2e,
-  I32Load16U = 0x2f,
-  I64Load8S = 0x30,
-  I64Load8U = 0x31,
-  I64Load16S = 0x32,
-  I64Load16U = 0x33,
-  I64Load32S = 0x34,
-  I64Load32U = 0x35,
-  I32Store = 0x36,
-  I64Store = 0x37,
-  F32Store = 0x38,
-  F64Store = 0x39,
-  I32Store8 = 0x3a,
-  I32Store16 = 0x3b,
-  I64Store8 = 0x3c,
-  I64Store16 = 0x3d,
-  I64Store32 = 0x3e,
-  MemorySize = 0x3f,
-  MemoryGrow = 0x40,
-  I32Const = 0x41,
-  I64Const = 0x42,
-  F32Const = 0x43,
-  F64Const = 0x44,
-  I32EqZ = 0x45,
-  I32Eq = 0x46,
-  I32Ne = 0x47,
-  I32LtS = 0x47,
-  I32LtU = 0x48,
-  I32GtS = 0x49,
-  I32GtU = 0x4a,
-  I32LeS = 0x4b,
-  I32LeU = 0x4c,
-  I32GeS = 0x4d,
-  I32GeU = 0x4f,
-  I64EqZ = 0x50,
-  I64Eq = 0x51,
-  I64Ne = 0x52,
-  I64LtS = 0x53,
-  I64LtU = 0x54,
-  I64GtS = 0x55,
-  I64GtU = 0x56,
-  I64LeS = 0x57,
-  I64LeU = 0x58,
-  I64GeS = 0x59,
-  I64GeU = 0x5a,
-  F32Eq = 0x5b,
-  F32Ne = 0x5c,
-  F32Lt = 0x5d,
-  F32Gt = 0x5e,
-  F32Le = 0x5f,
-  F32Ge = 0x60,
-  F64Eq = 0x61,
-  F64Ne = 0x62,
-  F64Lt = 0x63,
-  F64Gt = 0x64,
-  F64Le = 0x65,
-  F64Ge = 0x66,
-  I32Clz = 0x67,
-  I32Ctz = 0x68,
-  I32Popcnt = 0x69,
+  I64Load,
+  F32Load,
+  F64Load,
+  I32Load8S,
+  I32Load8U,
+  I32Load16S,
+  I32Load16U,
+  I64Load8S,
+  I64Load8U,
+  I64Load16S,
+  I64Load16U,
+  I64Load32S,
+  I64Load32U,
+  I32Store,
+  I64Store,
+  F32Store,
+  F64Store,
+  I32Store8,
+  I32Store16,
+  I64Store8,
+  I64Store16,
+  I64Store32,
+  MemorySize,
+  MemoryGrow,
+  I32Const,
+  I64Const,
+  F32Const,
+  F64Const,
+  I32EqZ,
+  I32Eq,
+  I32Ne,
+  I32LtS,
+  I32LtU,
+  I32GtS,
+  I32GtU,
+  I32LeS,
+  I32LeU,
+  I32GeS,
+  I32GeU,
+  I64EqZ,
+  I64Eq,
+  I64Ne,
+  I64LtS,
+  I64LtU,
+  I64GtS,
+  I64GtU,
+  I64LeS,
+  I64LeU,
+  I64GeS,
+  I64GeU,
+  F32Eq,
+  F32Ne,
+  F32Lt,
+  F32Gt,
+  F32Le,
+  F32Ge,
+  F64Eq,
+  F64Ne,
+  F64Lt,
+  F64Gt,
+  F64Le,
+  F64Ge,
+  I32Clz,
+  I32Ctz,
+  I32Popcnt,
   I32Add,
   I32Sub,
   I32Mul,
@@ -412,3 +426,193 @@ export enum OtherInstrType {
   TableSize,
   TableFill,
 }
+
+export type Instruction =
+  | [InstrType.Unreachable]
+  | [InstrType.Nop]
+  | [InstrType.Return]
+  | [InstrType.RefIsNull]
+  | [InstrType.Drop]
+  | [InstrType.Select]
+  | [InstrType.I32EqZ]
+  | [InstrType.I32Eq]
+  | [InstrType.I32Ne]
+  | [InstrType.I32LtS]
+  | [InstrType.I32LtU]
+  | [InstrType.I32GtS]
+  | [InstrType.I32GtU]
+  | [InstrType.I32LeS]
+  | [InstrType.I32LeU]
+  | [InstrType.I32GeS]
+  | [InstrType.I32GeU]
+  | [InstrType.I64EqZ]
+  | [InstrType.I64Eq]
+  | [InstrType.I64Ne]
+  | [InstrType.I64LtS]
+  | [InstrType.I64LtU]
+  | [InstrType.I64GtS]
+  | [InstrType.I64GtU]
+  | [InstrType.I64LeS]
+  | [InstrType.I64LeU]
+  | [InstrType.I64GeS]
+  | [InstrType.I64GeU]
+  | [InstrType.F32Eq]
+  | [InstrType.F32Ne]
+  | [InstrType.F32Lt]
+  | [InstrType.F32Gt]
+  | [InstrType.F32Le]
+  | [InstrType.F32Ge]
+  | [InstrType.F64Eq]
+  | [InstrType.F64Ne]
+  | [InstrType.F64Lt]
+  | [InstrType.F64Gt]
+  | [InstrType.F64Le]
+  | [InstrType.F64Ge]
+  | [InstrType.I32Clz]
+  | [InstrType.I32Ctz]
+  | [InstrType.I32Popcnt]
+  | [InstrType.I32Add]
+  | [InstrType.I32Sub]
+  | [InstrType.I32Mul]
+  | [InstrType.I32DivS]
+  | [InstrType.I32DivU]
+  | [InstrType.I32RemS]
+  | [InstrType.I32RemU]
+  | [InstrType.I32And]
+  | [InstrType.I32Or]
+  | [InstrType.I32Xor]
+  | [InstrType.I32Shl]
+  | [InstrType.I32ShrS]
+  | [InstrType.I32ShrU]
+  | [InstrType.I32Rotl]
+  | [InstrType.I32Rotr]
+  | [InstrType.I64Clz]
+  | [InstrType.I64Ctz]
+  | [InstrType.I64Popcnt]
+  | [InstrType.I64Add]
+  | [InstrType.I64Sub]
+  | [InstrType.I64Mul]
+  | [InstrType.I64DivS]
+  | [InstrType.I64DivU]
+  | [InstrType.I64RemS]
+  | [InstrType.I64RemU]
+  | [InstrType.I64And]
+  | [InstrType.I64Or]
+  | [InstrType.I64Xor]
+  | [InstrType.I64Shl]
+  | [InstrType.I64ShrS]
+  | [InstrType.I64ShrU]
+  | [InstrType.I64Rotl]
+  | [InstrType.I64Rotr]
+  | [InstrType.F32Abs]
+  | [InstrType.F32Neg]
+  | [InstrType.F32Ceil]
+  | [InstrType.F32Floor]
+  | [InstrType.F32Trunc]
+  | [InstrType.F32Nearest]
+  | [InstrType.F32Sqrt]
+  | [InstrType.F32Add]
+  | [InstrType.F32Sub]
+  | [InstrType.F32Mul]
+  | [InstrType.F32Div]
+  | [InstrType.F32Min]
+  | [InstrType.F32Max]
+  | [InstrType.F32CopySign]
+  | [InstrType.F64Abs]
+  | [InstrType.F64Neg]
+  | [InstrType.F64Ceil]
+  | [InstrType.F64Floor]
+  | [InstrType.F64Trunc]
+  | [InstrType.F64Nearest]
+  | [InstrType.F64Sqrt]
+  | [InstrType.F64Add]
+  | [InstrType.F64Sub]
+  | [InstrType.F64Mul]
+  | [InstrType.F64Div]
+  | [InstrType.F64Min]
+  | [InstrType.F64Max]
+  | [InstrType.F64CopySign]
+  | [InstrType.I32WrapI64]
+  | [InstrType.I32TruncF32S]
+  | [InstrType.I32TruncF32U]
+  | [InstrType.I32TruncF64S]
+  | [InstrType.I32TruncF64U]
+  | [InstrType.I64ExtendI32S]
+  | [InstrType.I64ExtendI32U]
+  | [InstrType.I64TruncF32S]
+  | [InstrType.I64TruncF32U]
+  | [InstrType.I64TruncF64S]
+  | [InstrType.I64TruncF64U]
+  | [InstrType.F32ConvertI32S]
+  | [InstrType.F32ConvertI32U]
+  | [InstrType.F32ConvertI64S]
+  | [InstrType.F32ConvertI64U]
+  | [InstrType.F32DemoteF64]
+  | [InstrType.F64ConvertI32S]
+  | [InstrType.F64ConvertI32U]
+  | [InstrType.F64ConvertI64S]
+  | [InstrType.F64ConvertI64U]
+  | [InstrType.F64PromoteF32]
+  | [InstrType.I32ReinterpretF32]
+  | [InstrType.I64ReinterpretF64]
+  | [InstrType.F32ReinterpretI32]
+  | [InstrType.F64ReinterpretI64]
+  | [InstrType.I32Extend8S]
+  | [InstrType.I32Extend16S]
+  | [InstrType.I64Extend8S]
+  | [InstrType.I64Extend16S]
+  | [InstrType.I64Extend32S]
+  | [InstrType.Block, BlockType]
+  | [InstrType.Loop, BlockType]
+  | [InstrType.If, BlockType]
+  | [InstrType.Else]
+  | [InstrType.Br, number]
+  | [InstrType.BrIf, number]
+  | [InstrType.BrTable, ...number[]]
+  | [InstrType.Call, number]
+  | [InstrType.CallIndirect, number, number]
+  | [InstrType.RefNull, RefType]
+  | [InstrType.RefFunc, number]
+  | [InstrType.SelectT, ...ValueType[]]
+  | [InstrType.LocalGet, number]
+  | [InstrType.LocalSet, number]
+  | [InstrType.LocalTee, number]
+  | [InstrType.GlobalGet, number]
+  | [InstrType.GlobalSet, number]
+  | [InstrType.TableGet, number]
+  | [InstrType.TableSet, number]
+  | [InstrType.Other, OtherInstrType.TableInit, number, number]
+  | [InstrType.Other, OtherInstrType.ElemDrop, number]
+  | [InstrType.Other, OtherInstrType.TableCopy, number, number]
+  | [InstrType.Other, OtherInstrType.TableGrow, number]
+  | [InstrType.Other, OtherInstrType.TableSize, number]
+  | [InstrType.Other, OtherInstrType.TableFill, number]
+  | [InstrType.I32Load, number, number]
+  | [InstrType.I64Load, number, number]
+  | [InstrType.F32Load, number, number]
+  | [InstrType.F64Load, number, number]
+  | [InstrType.I32Load8S, number, number]
+  | [InstrType.I32Load8U, number, number]
+  | [InstrType.I32Load16S, number, number]
+  | [InstrType.I32Load16U, number, number]
+  | [InstrType.I64Load8S, number, number]
+  | [InstrType.I64Load8U, number, number]
+  | [InstrType.I64Load16S, number, number]
+  | [InstrType.I64Load16U, number, number]
+  | [InstrType.I64Load32S, number, number]
+  | [InstrType.I64Load32U, number, number]
+  | [InstrType.I32Store, number, number]
+  | [InstrType.I64Store, number, number]
+  | [InstrType.F32Store, number, number]
+  | [InstrType.F64Store, number, number]
+  | [InstrType.I32Store8, number, number]
+  | [InstrType.I32Store16, number, number]
+  | [InstrType.I64Store8, number, number]
+  | [InstrType.I64Store16, number, number]
+  | [InstrType.I64Store32, number, number]
+  | [InstrType.Other, OtherInstrType.MemoryInit, number]
+  | [InstrType.Other, OtherInstrType.DataDrop, number]
+  | [InstrType.Other, OtherInstrType.MemoryCopy]
+  | [InstrType.Other, OtherInstrType.MemoryFill]
+  | [InstrType.MemorySize]
+  | [InstrType.MemoryGrow];

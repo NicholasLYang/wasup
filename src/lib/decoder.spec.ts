@@ -66,7 +66,12 @@ test('decodeModule', (t) => {
       },
       code: {
         id: 10,
-        items: [{ locals: localVariables, code: [0x20, 0, 0x41, 2, 0x6c] }],
+        items: [
+          {
+            locals: localVariables,
+            code: new Uint8Array([0x20, 0, 0x41, 2, 0x6c]),
+          },
+        ],
       },
       customSections: [],
     }

@@ -19,7 +19,6 @@ import {
   ImportSection,
   MemorySection,
   Module,
-  OpCode,
   RefType,
   ResizableLimits,
   StartSection,
@@ -92,7 +91,7 @@ function getGlobalSize(global: Global): number {
   return 2 + getInstrListSize(global.initExpr);
 }
 
-function getInstrListSize(instrList: OpCode[]) {
+function getInstrListSize(instrList: Uint8Array) {
   return 1 + instrList.length;
 }
 
@@ -118,11 +117,11 @@ function getElementSize(element: Element) {
     initExprs,
   } = element as {
     tableIndex?: number;
-    offsetExpr?: OpCode[];
+    offsetExpr?: Uint8Array;
     functionIds?: number[];
     refType?: RefType;
     elementKind?: ElementKind;
-    initExprs?: OpCode[][];
+    initExprs?: Uint8Array[];
   };
 
   if (tableIndex) {
