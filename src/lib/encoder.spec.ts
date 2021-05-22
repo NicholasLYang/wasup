@@ -6,6 +6,7 @@ import {
   encodeTypeSection,
 } from './encoder';
 import { ExternalKind, NumType, RefType } from './wasm';
+import { getTypeSectionSize } from './size';
 
 const emptyModule = createModule();
 
@@ -123,13 +124,30 @@ test('encodeModule', (t) => {
 });
 
 test('encodeTypeSection', (t) => {
-  t.deepEqual(
-    encodeTypeSection({
-      id: 1,
+  {
+    const typeSection = {
+      id: 1 as const,
       items: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
-    }),
-    [1, 6, 1, 0x60, 1, 0x7f, 1, 0x70]
-  );
+    };
+    const typeSectionSize = getTypeSectionSize(typeSection);
+
+    const encoder = {
+      buffer: new Uint8Array(typeSectionSize),
+      sizeInfo: {
+        total: typeSectionSize,
+        sections: { types: typeSectionSize },
+      },
+      index: 0,
+      textEncoder: new TextEncoder(),
+    };
+
+    encodeTypeSection(encoder, typeSection);
+
+    t.deepEqual(
+      encoder.buffer,
+      new Uint8Array([1, 6, 1, 0x60, 1, 0x7f, 1, 0x70])
+    );
+  }
 
   t.deepEqual(
     encodeTypeSection({

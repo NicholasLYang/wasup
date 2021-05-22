@@ -88,11 +88,7 @@ export function getTableTypeSize(tableType: TableType): number {
 
 function getGlobalSize(global: Global): number {
   // Global type is 2 bytes (bool + value type)
-  return 2 + getInstrListSize(global.initExpr);
-}
-
-function getInstrListSize(instrList: Uint8Array) {
-  return 1 + instrList.length;
+  return 2 + global.initExpr.length;
 }
 
 function getExportSize(exportEntry: Export) {
@@ -129,7 +125,7 @@ function getElementSize(element: Element) {
   }
 
   if (offsetExpr) {
-    elementSize += getInstrListSize(offsetExpr);
+    elementSize += offsetExpr.length;
   }
 
   if (functionIds) {
@@ -146,7 +142,7 @@ function getElementSize(element: Element) {
 
   if (initExprs) {
     for (const expr of initExprs) {
-      elementSize += getInstrListSize(expr);
+      elementSize += expr.length;
     }
   }
 
@@ -158,7 +154,7 @@ function getFunctionBodySize(body: Code): number {
     return 1 + getLEB128USize(count);
   });
 
-  const bodySize = getInstrListSize(body.code) + localsSize;
+  const bodySize = body.code.length + localsSize;
   return getLEB128USize(bodySize) + bodySize;
 }
 
@@ -167,7 +163,7 @@ function getDataSize(data: Data) {
     case 0x00:
       return (
         1 +
-        getInstrListSize(data.offsetExpr) +
+        data.offsetExpr.length +
         getLEB128USize(data.bytes.length) +
         data.bytes.length
       );
@@ -177,7 +173,7 @@ function getDataSize(data: Data) {
       return (
         1 +
         data.memoryIndex +
-        getInstrListSize(data.offsetExpr) +
+        data.offsetExpr.length +
         getLEB128USize(data.bytes.length) +
         data.bytes.length
       );

@@ -119,7 +119,7 @@ export interface GlobalType {
 
 export interface Global {
   type: GlobalType;
-  initExpr: Instruction[];
+  initExpr: Expr;
 }
 
 export enum ElementKind {
@@ -129,7 +129,7 @@ export enum ElementKind {
 export type Element =
   | {
       id: 0x00; // Active mode
-      offsetExpr: Instruction[];
+      offsetExpr: Expr;
       functionIds: FuncId[];
     }
   | {
@@ -140,7 +140,7 @@ export type Element =
   | {
       id: 0x02; // Active
       tableIndex: number;
-      offsetExpr: Instruction[];
+      offsetExpr: Expr;
       kind: ElementKind;
       functionIds: FuncId[];
     }
@@ -151,38 +151,38 @@ export type Element =
     }
   | {
       id: 0x04; // Active
-      offsetExpr: Instruction[];
-      initExprs: Instruction[][];
+      offsetExpr: Expr;
+      initExprs: Expr[];
     }
   | {
       id: 0x05; // Passive
       refType: RefType;
-      initExprs: Instruction[][];
+      initExprs: Expr[];
     }
   | {
       id: 0x06; // Active
       tableIndex: number;
-      offsetExpr: Instruction[];
+      offsetExpr: Expr;
       refType: RefType;
-      initExprs: Instruction[][];
+      initExprs: Expr[];
     }
   | {
       id: 0x07; // Declarative
       refType: RefType;
-      initExprs: Instruction[][];
+      initExprs: Expr[];
     };
 
 export type LocalVariables = Map<ValueType, number>;
 
 export interface Code {
   locals: LocalVariables;
-  code: Instruction[];
+  code: Expr;
 }
 
 export type Data =
   | {
       id: 0x00;
-      offsetExpr: Instruction[];
+      offsetExpr: Expr;
       bytes: Uint8Array;
     }
   | {
@@ -192,7 +192,7 @@ export type Data =
   | {
       id: 0x02;
       memoryIndex: number;
-      offsetExpr: Instruction[];
+      offsetExpr: Expr;
       bytes: Uint8Array;
     };
 
@@ -562,9 +562,9 @@ export type Instruction =
   | [InstrType.I64Extend8S]
   | [InstrType.I64Extend16S]
   | [InstrType.I64Extend32S]
-  | [InstrType.Block, BlockType, Instruction[]]
-  | [InstrType.Loop, BlockType, Instruction[]]
-  | [InstrType.If, BlockType, Instruction[], Instruction[]]
+  | [InstrType.Block, BlockType, Expr]
+  | [InstrType.Loop, BlockType, Expr]
+  | [InstrType.If, BlockType, Expr, Expr]
   | [InstrType.Else]
   | [InstrType.Br, number]
   | [InstrType.BrIf, number]
@@ -628,3 +628,8 @@ export type Instruction =
   | [InstrType.I64Const, number]
   | [InstrType.F32Const, number]
   | [InstrType.F64Const, number];
+
+export interface Expr {
+  instructions: Instruction[];
+  length: number;
+}

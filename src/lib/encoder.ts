@@ -1,4 +1,4 @@
-import { getLEB128USize, toUnsignedLEB128 } from './leb128';
+import { toUnsignedLEB128 } from './leb128';
 import {
   Code,
   CodeSection,
@@ -9,6 +9,7 @@ import {
   ElementSection,
   Export,
   ExportSection,
+  Expr,
   ExternalKind,
   FunctionSection,
   FuncType,
@@ -17,7 +18,6 @@ import {
   GlobalType,
   Import,
   ImportSection,
-  Instruction,
   MemorySection,
   Module,
   ResizableLimits,
@@ -26,16 +26,8 @@ import {
   TableSection,
   TableType,
   TypeSection,
-  ValueType,
 } from './wasm';
-import {
-  getFuncTypeSize,
-  getImportEntrySize,
-  getModuleSize,
-  getTableTypeSize,
-  getVecSize,
-  SizeInfo,
-} from './size';
+import { getModuleSize, SizeInfo } from './size';
 
 interface Encoder {
   buffer: Uint8Array;
@@ -44,7 +36,7 @@ interface Encoder {
   sizeInfo: SizeInfo;
 }
 
-function createEncoder(module: Module): Encoder {
+export function createEncoder(module: Module): Encoder {
   const sizeInfo = getModuleSize(module);
   const buffer = new Uint8Array(sizeInfo.total);
 
@@ -120,16 +112,18 @@ export function encodeModule(module: Module): Uint8Array {
   }
 
   if (module.code.items.length > 0) {
-    encodeCodeSection(module.code);
+    encodeCodeSection(encoder, module.code);
   }
 
   if (module.data.items.length > 0) {
-    encodeDataSection(module.data);
+    encodeDataSection(encoder, module.data);
   }
 
   if (module.dataCount) {
-    encodeDataCountSection(module.dataCount);
+    encodeDataCountSection(encoder, module.dataCount);
   }
+
+  return encoder.buffer;
 }
 
 function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
@@ -176,7 +170,7 @@ export function encodeFunctionSection(
     encoder,
     functionSection,
     encoder.sizeInfo.sections.functions!,
-    toUnsignedLEB128
+    encodeLEB128U
   );
 }
 
@@ -211,7 +205,7 @@ export function encodeGlobalSection(
   return encodeSection(
     encoder,
     globalSection,
-    encoder.sizeInfo.sections.globals,
+    encoder.sizeInfo.sections.globals!,
     encodeGlobal
   );
 }
@@ -366,7 +360,7 @@ function encodeByteArray(encoder: Encoder, bytes: Uint8Array) {
   }
 }
 
-function encodeImportEntry(encoder: Encoder, importEntry: Import): number[] {
+function encodeImportEntry(encoder: Encoder, importEntry: Import) {
   const textEncoder = new TextEncoder();
 
   const moduleBytes = textEncoder.encode(importEntry.module);
@@ -425,7 +419,7 @@ function encodeResizableLimits(
   }
 }
 
-function encodeExpr(encoder: Encoder, expr: Instruction[]) {
+function encodeExpr(encoder: Encoder, expr: Expr) {
   encodeByte(encoder, 0x0b);
 }
 

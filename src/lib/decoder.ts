@@ -614,14 +614,17 @@ function decodeExpr(decoder: Decoder): Instruction[] {
     const byte = peekByte(decoder);
 
     if (byte === 0x0b) {
+      // Bump index
       decodeByte(decoder);
       break;
     }
+
     if (byte === undefined) {
       throw new Error(
         `Reached end of program without finding end of expression (0x0b)`
       );
     }
+
     expr.push(decodeInstruction(decoder));
   }
 
