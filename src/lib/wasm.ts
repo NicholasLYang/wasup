@@ -176,7 +176,7 @@ export type LocalVariables = Map<ValueType, number>;
 
 export interface Code {
   locals: LocalVariables;
-  code: Uint8Array;
+  code: Instruction[];
 }
 
 export type Data =
@@ -562,9 +562,9 @@ export type Instruction =
   | [InstrType.I64Extend8S]
   | [InstrType.I64Extend16S]
   | [InstrType.I64Extend32S]
-  | [InstrType.Block, BlockType]
-  | [InstrType.Loop, BlockType]
-  | [InstrType.If, BlockType]
+  | [InstrType.Block, BlockType, Instruction[]]
+  | [InstrType.Loop, BlockType, Instruction[]]
+  | [InstrType.If, BlockType, Instruction[], Instruction[]]
   | [InstrType.Else]
   | [InstrType.Br, number]
   | [InstrType.BrIf, number]
@@ -581,6 +581,18 @@ export type Instruction =
   | [InstrType.GlobalSet, number]
   | [InstrType.TableGet, number]
   | [InstrType.TableSet, number]
+  | [InstrType.Other, OtherInstrType.I32TruncSatF32S]
+  | [InstrType.Other, OtherInstrType.I32TruncSatF32U]
+  | [InstrType.Other, OtherInstrType.I32TruncSatF64S]
+  | [InstrType.Other, OtherInstrType.I32TruncSatF64U]
+  | [InstrType.Other, OtherInstrType.I64TruncSatF32S]
+  | [InstrType.Other, OtherInstrType.I64TruncSatF32U]
+  | [InstrType.Other, OtherInstrType.I64TruncSatF64S]
+  | [InstrType.Other, OtherInstrType.I64TruncSatF64U]
+  | [InstrType.Other, OtherInstrType.MemoryInit, number]
+  | [InstrType.Other, OtherInstrType.DataDrop, number]
+  | [InstrType.Other, OtherInstrType.MemoryCopy]
+  | [InstrType.Other, OtherInstrType.MemoryFill]
   | [InstrType.Other, OtherInstrType.TableInit, number, number]
   | [InstrType.Other, OtherInstrType.ElemDrop, number]
   | [InstrType.Other, OtherInstrType.TableCopy, number, number]
@@ -610,9 +622,9 @@ export type Instruction =
   | [InstrType.I64Store8, number, number]
   | [InstrType.I64Store16, number, number]
   | [InstrType.I64Store32, number, number]
-  | [InstrType.Other, OtherInstrType.MemoryInit, number]
-  | [InstrType.Other, OtherInstrType.DataDrop, number]
-  | [InstrType.Other, OtherInstrType.MemoryCopy]
-  | [InstrType.Other, OtherInstrType.MemoryFill]
   | [InstrType.MemorySize]
-  | [InstrType.MemoryGrow];
+  | [InstrType.MemoryGrow]
+  | [InstrType.I32Const, number]
+  | [InstrType.I64Const, number]
+  | [InstrType.F32Const, number]
+  | [InstrType.F64Const, number];

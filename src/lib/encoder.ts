@@ -27,12 +27,52 @@ import {
   TypeSection,
   ValueType,
 } from './wasm';
+import { getModuleSize } from './size';
+
+interface Encoder {
+  buffer: Uint8Array;
+  index: number;
+}
+
+function createEncoder(module: Module): Encoder {
+  const bufferSize = getModuleSize(module);
+  const buffer = new Uint8Array(bufferSize);
+
+  return {
+    buffer,
+    index,
+  };
+}
+
+function encodePreamble(encoder: Encoder) {
+  encoder.buffer[0] = 0x00;
+  encoder.buffer[1] = 0x61;
+  encoder.buffer[2] = 0x73;
+  encoder.buffer[3] = 0x6d;
+  encoder.buffer[4] = 0x01;
+  encoder.buffer[5] = 0x00;
+  encoder.buffer[6] = 0x00;
+  encoder.buffer[7] = 0x00;
+
+  encoder.index = 8;
+}
+
+function encodeLEB128U(encoder: Encoder, int: number) {
+  const endIndex = toUnsignedLEB128(int, encoder.buffer, encoder.index);
+  encoder.index = endIndex;
+}
+
+function encodeByte(encoder: Encoder, byte: number) {
+  encoder.buffer[encoder.index] = byte;
+  encoder.index += 1;
+}
 
 export function encodeModule(module: Module): Uint8Array {
-  const output = [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+  const encoder = createEncoder(module);
+  encodePreamble(encoder);
 
   if (module.types.items.length > 0) {
-    output.push(...encodeTypeSection(module.types));
+    encodeTypeSection(encoder, module.types);
   }
 
   if (module.imports.items.length > 0) {
@@ -88,10 +128,11 @@ export function encodeModule(module: Module): Uint8Array {
 }
 
 function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
+  encoder: Encoder,
   section: T,
-  encodeFn: (item: Item) => number[]
+  encodeFn: (encoder: Encoder, item: Item) => number[]
 ): number[] {
-  const output: number[] = [section.id];
+  encodeByte(encoder, section.id);
   // We push to this temporary array cause we need the size of the
   // section content
   const sectionContent = [];
@@ -108,8 +149,8 @@ function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
   return output;
 }
 
-export function encodeTypeSection(typeSection: TypeSection): number[] {
-  return encodeSection(typeSection, encodeFuncType);
+export function encodeTypeSection(encoder, typeSection: TypeSection): number[] {
+  return encodeSection(encoder, typeSection, encodeFuncType);
 }
 
 export function encodeImportSection(importSection: ImportSection): number[] {

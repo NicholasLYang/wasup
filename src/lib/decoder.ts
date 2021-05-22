@@ -16,7 +16,6 @@ import {
   Instruction,
   Module,
   NumType,
-  OpCode,
   OtherInstrType,
   RefType,
   ResizableLimits,
@@ -28,6 +27,7 @@ import {
 interface Decoder {
   index: number;
   bytes: Uint8Array;
+  view: DataView;
   decodedSections: Set<number>;
 }
 
@@ -51,6 +51,7 @@ export function decodeModule(encodedModule: Uint8Array) {
   const decoder: Decoder = {
     index: 0,
     bytes: encodedModule,
+    view: new DataView(encodedModule.buffer),
     decodedSections: new Set(),
   };
   const module = createModule();
@@ -112,6 +113,25 @@ function decodeLEB128S(decoder: Decoder): number {
   const { index, value } = fromLEB128S(decoder.bytes, decoder.index);
   decoder.index = index;
   return value;
+}
+
+function decodeFloat32(decoder: Decoder): number {
+  const float = decoder.view.getFloat32(decoder.index, true);
+  decoder.index = decoder.index + 4;
+
+  return float;
+}
+
+function decodeFloat64(decoder: Decoder): number {
+  const float = decoder.view.getFloat64(decoder.index, true);
+  decoder.index = decoder.index + 8;
+
+  return float;
+}
+
+// Get a byte without advancing index
+function peekByte(decoder: Decoder): number {
+  return decoder.bytes[decoder.index];
 }
 
 function decodeByte(decoder: Decoder): number {
@@ -408,10 +428,38 @@ function decodeInstruction(decoder: Decoder): Instruction {
     case InstrType.Select:
       return [instr];
     case InstrType.Block:
-    case InstrType.Loop:
+    case InstrType.Loop: {
+      const blockType = decodeBlockType(decoder);
+      const block = [];
+
+      while (peekByte(decoder) != 0x0b) {
+        block.push(decodeInstruction(decoder));
+      }
+
+      return [instr, blockType, block];
+    }
     case InstrType.If: {
       const blockType = decodeBlockType(decoder);
-      return [instr, blockType];
+      const thenBlock = [];
+
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const byte = peekByte(decoder);
+
+        if (byte === 0x0b) {
+          return [instr, blockType, thenBlock, []];
+        }
+
+        if (byte === 0x05) {
+          const elseBlock = [];
+          while (peekByte(decoder) != 0x0b) {
+            elseBlock.push(decodeInstruction(decoder));
+          }
+          return [instr, blockType, thenBlock, elseBlock];
+        }
+
+        thenBlock.push(decodeInstruction(decoder));
+      }
     }
     case InstrType.Br:
     case InstrType.BrIf:
@@ -421,13 +469,25 @@ function decodeInstruction(decoder: Decoder): Instruction {
     case InstrType.LocalSet:
     case InstrType.LocalTee:
     case InstrType.GlobalGet:
-    case InstrType.GlobalSet: {
+    case InstrType.GlobalSet:
+    case InstrType.TableGet:
+    case InstrType.TableSet: {
       const index = decodeLEB128U(decoder);
       return [instr, index];
     }
     case InstrType.Other: {
       const otherInstrType = decodeLEB128U(decoder);
       switch (otherInstrType) {
+        case OtherInstrType.I32TruncSatF32S:
+        case OtherInstrType.I32TruncSatF32U:
+        case OtherInstrType.I32TruncSatF64S:
+        case OtherInstrType.I32TruncSatF64U:
+        case OtherInstrType.I64TruncSatF32S:
+        case OtherInstrType.I64TruncSatF32U:
+        case OtherInstrType.I64TruncSatF64S:
+        case OtherInstrType.I64TruncSatF64U: {
+          return [instr, otherInstrType];
+        }
         case OtherInstrType.TableInit:
         case OtherInstrType.TableCopy: {
           const index1 = decodeLEB128U(decoder);
@@ -523,6 +583,21 @@ function decodeInstruction(decoder: Decoder): Instruction {
         throw new Error(`Expected 0x00 after 0x40 for memory.grow instruction`);
       }
       return [instr];
+    }
+    case InstrType.I32Const:
+    case InstrType.I64Const: {
+      // TODO: Add a max length parameter to decodeLEB128 functions
+      // and error if int exceeds it
+      const int = decodeLEB128S(decoder);
+      return [instr, int];
+    }
+    case InstrType.F32Const: {
+      const int = decodeFloat32(decoder);
+      return [instr, int];
+    }
+    case InstrType.F64Const: {
+      const int = decodeFloat64(decoder);
+      return [instr, int];
     }
     default:
       if (instr >= InstrType.I32EqZ && instr <= InstrType.I64Extend32S) {
