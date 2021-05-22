@@ -26,29 +26,29 @@ import {
   TableType,
   TypeSection,
 } from './wasm';
-import { getEncodedSize } from './leb128';
+import { getLEB128USize } from './leb128';
 
-function getFuncTypeSize(funcType: FuncType): number {
+export function getFuncTypeSize(funcType: FuncType): number {
   return (
     1 + // Type constructor
     // length of the vector as varuint32
-    getEncodedSize(funcType.paramTypes.length) +
+    getLEB128USize(funcType.paramTypes.length) +
     // Actual types
     funcType.paramTypes.length +
-    getEncodedSize(funcType.returnTypes.length) +
+    getLEB128USize(funcType.returnTypes.length) +
     funcType.returnTypes.length
   );
 }
 
 function getResizeableLimitsSize(limits: ResizableLimits) {
-  let limitsLen = 1 + getEncodedSize(limits.minimum);
+  let limitsLen = 1 + getLEB128USize(limits.minimum);
   if (limits.maximum) {
-    limitsLen += getEncodedSize(limits.maximum);
+    limitsLen += getLEB128USize(limits.maximum);
   }
   return limitsLen;
 }
 
-function getImportEntrySize(importEntry: Import) {
+export function getImportEntrySize(importEntry: Import) {
   const nameLen = new TextEncoder().encode(importEntry.module).length;
   const fieldLen = new TextEncoder().encode(importEntry.field).length;
 
@@ -57,7 +57,7 @@ function getImportEntrySize(importEntry: Import) {
   const { description } = importEntry;
   switch (description.kind) {
     case ExternalKind.Function:
-      descLen += getEncodedSize(description.typeIndex);
+      descLen += getLEB128USize(description.typeIndex);
       break;
     case ExternalKind.Table:
       // 1 for reftype
@@ -73,15 +73,15 @@ function getImportEntrySize(importEntry: Import) {
   }
 
   return (
-    getEncodedSize(nameLen) +
+    getLEB128USize(nameLen) +
     nameLen +
-    getEncodedSize(fieldLen) +
+    getLEB128USize(fieldLen) +
     fieldLen +
     descLen
   );
 }
 
-function getTableTypeSize(tableType: TableType): number {
+export function getTableTypeSize(tableType: TableType): number {
   // 1 for ref type
   return 1 + getResizeableLimitsSize(tableType.limits);
 }
@@ -99,7 +99,7 @@ function getExportSize(exportEntry: Export) {
   const nameLen = new TextEncoder().encode(exportEntry.name).length;
 
   return (
-    getEncodedSize(nameLen) + nameLen + 1 + getEncodedSize(exportEntry.index)
+    getLEB128USize(nameLen) + nameLen + 1 + getLEB128USize(exportEntry.index)
   );
 }
 
@@ -125,7 +125,7 @@ function getElementSize(element: Element) {
   };
 
   if (tableIndex) {
-    elementSize += getEncodedSize(tableIndex);
+    elementSize += getLEB128USize(tableIndex);
   }
 
   if (offsetExpr) {
@@ -133,7 +133,7 @@ function getElementSize(element: Element) {
   }
 
   if (functionIds) {
-    elementSize += getVecSize(functionIds, getEncodedSize);
+    elementSize += getVecSize(functionIds, getLEB128USize);
   }
 
   if (refType) {
@@ -155,11 +155,11 @@ function getElementSize(element: Element) {
 
 function getFunctionBodySize(body: Code): number {
   const localsSize = getVecSize(Object.entries(body.locals), ([_, count]) => {
-    return 1 + getEncodedSize(count);
+    return 1 + getLEB128USize(count);
   });
 
   const bodySize = getInstrListSize(body.code) + localsSize;
-  return getEncodedSize(bodySize) + bodySize;
+  return getLEB128USize(bodySize) + bodySize;
 }
 
 function getDataSize(data: Data) {
@@ -168,25 +168,25 @@ function getDataSize(data: Data) {
       return (
         1 +
         getInstrListSize(data.offsetExpr) +
-        getEncodedSize(data.bytes.length) +
+        getLEB128USize(data.bytes.length) +
         data.bytes.length
       );
     case 0x01:
-      return 1 + getEncodedSize(data.bytes.length) + data.bytes.length;
+      return 1 + getLEB128USize(data.bytes.length) + data.bytes.length;
     case 0x02:
       return (
         1 +
         data.memoryIndex +
         getInstrListSize(data.offsetExpr) +
-        getEncodedSize(data.bytes.length) +
+        getLEB128USize(data.bytes.length) +
         data.bytes.length
       );
   }
 }
 
-function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
+export function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
   // Allocate space for length prefix
-  let vecSize = getEncodedSize(entries.length);
+  let vecSize = getLEB128USize(entries.length);
 
   for (const entry of entries) {
     vecSize += sizeFn(entry);
@@ -225,7 +225,7 @@ export function getImportSectionSize(importSection: ImportSection) {
  * @returns Size of function section in bytes
  */
 export function getFunctionSectionSize(functionSection: FunctionSection) {
-  return getVecSize(functionSection.items, getEncodedSize);
+  return getVecSize(functionSection.items, getLEB128USize);
 }
 
 /**
@@ -280,7 +280,7 @@ export function getExportSectionSize(exportSection: ExportSection) {
  * @returns Size of start section in bytes
  */
 export function getStartSectionSize(startSection: StartSection) {
-  return getVecSize([startSection.startFunction], getEncodedSize);
+  return getVecSize([startSection.startFunction], getLEB128USize);
 }
 
 /**
@@ -324,8 +324,8 @@ export function getDataSectionSize(dataSection: DataSection) {
  * @returns Size of data count section in bytes
  */
 export function getDataCountSection(dataCountSection: DataCountSection) {
-  const dataCountSize = getEncodedSize(dataCountSection.dataCount);
-  return 1 + getEncodedSize(dataCountSize) + dataCountSize;
+  const dataCountSize = getLEB128USize(dataCountSection.dataCount);
+  return 1 + getLEB128USize(dataCountSize) + dataCountSize;
 }
 
 /**
@@ -342,14 +342,14 @@ export function getCustomSectionsSize(customSections: CustomSection[]) {
     totalSize += 1; // Section ID
     const nameLen = new TextEncoder().encode(section.name).length;
     const sectionLen =
-      getEncodedSize(nameLen) + nameLen + section.contents.length;
-    totalSize += getEncodedSize(sectionLen) + sectionLen;
+      getLEB128USize(nameLen) + nameLen + section.contents.length;
+    totalSize += getLEB128USize(sectionLen) + sectionLen;
   }
 
   return totalSize;
 }
 
-interface SizeInfo {
+export interface SizeInfo {
   total: number;
   sections: { [Property in keyof Module]?: number };
 }

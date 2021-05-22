@@ -1,4 +1,4 @@
-import { toUnsignedLEB128 } from './leb128';
+import { getLEB128USize, toUnsignedLEB128 } from './leb128';
 import {
   Code,
   CodeSection,
@@ -17,6 +17,7 @@ import {
   GlobalType,
   Import,
   ImportSection,
+  Instruction,
   MemorySection,
   Module,
   ResizableLimits,
@@ -27,20 +28,31 @@ import {
   TypeSection,
   ValueType,
 } from './wasm';
-import { getModuleSize } from './size';
+import {
+  getFuncTypeSize,
+  getImportEntrySize,
+  getModuleSize,
+  getTableTypeSize,
+  getVecSize,
+  SizeInfo,
+} from './size';
 
 interface Encoder {
   buffer: Uint8Array;
   index: number;
+  textEncoder: TextEncoder;
+  sizeInfo: SizeInfo;
 }
 
 function createEncoder(module: Module): Encoder {
-  const bufferSize = getModuleSize(module);
-  const buffer = new Uint8Array(bufferSize);
+  const sizeInfo = getModuleSize(module);
+  const buffer = new Uint8Array(sizeInfo.total);
 
   return {
     buffer,
-    index,
+    sizeInfo,
+    index: 0,
+    textEncoder: new TextEncoder(),
   };
 }
 
@@ -76,307 +88,354 @@ export function encodeModule(module: Module): Uint8Array {
   }
 
   if (module.imports.items.length > 0) {
-    output.push(...encodeImportSection(module.imports));
+    encodeImportSection(encoder, module.imports);
   }
 
   if (module.functions.items.length > 0) {
-    output.push(...encodeFunctionSection(module.functions));
+    encodeFunctionSection(encoder, module.functions);
   }
 
   if (module.tables.items.length > 0) {
-    output.push(...encodeTableSection(module.tables));
+    encodeTableSection(encoder, module.tables);
   }
 
   if (module.memories.items.length > 0) {
-    output.push(...encodeMemorySection(module.memories));
+    encodeMemorySection(encoder, module.memories);
   }
 
   if (module.globals.items.length > 0) {
-    output.push(...encodeGlobalSection(module.globals));
+    encodeGlobalSection(encoder, module.globals);
   }
 
   if (module.exports.items.length > 0) {
-    output.push(...encodeExportSection(module.exports));
+    encodeExportSection(encoder, module.exports);
   }
 
   if (module.start) {
-    output.push(...encodeStartSection(module.start));
+    encodeStartSection(encoder, module.start);
   }
 
   if (module.elements.items.length > 0) {
-    output.push(...encodeElementSection(module.elements));
+    encodeElementSection(encoder, module.elements);
   }
 
   if (module.code.items.length > 0) {
-    output.push(...encodeCodeSection(module.code));
+    encodeCodeSection(module.code);
   }
 
   if (module.data.items.length > 0) {
-    output.push(...encodeDataSection(module.data));
+    encodeDataSection(module.data);
   }
 
   if (module.dataCount) {
-    output.push(...encodeDataCountSection(module.dataCount));
+    encodeDataCountSection(module.dataCount);
   }
-
-  const byteArray = new Uint8Array(output.length);
-  for (let i = 0; i < output.length; i++) {
-    byteArray[i] = output[i];
-  }
-
-  return byteArray;
 }
 
 function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
   encoder: Encoder,
   section: T,
-  encodeFn: (encoder: Encoder, item: Item) => number[]
-): number[] {
+  sectionSize: number,
+  encodeFn: (encoder: Encoder, item: Item) => void
+) {
   encodeByte(encoder, section.id);
-  // We push to this temporary array cause we need the size of the
-  // section content
-  const sectionContent = [];
-
-  sectionContent.push(...toUnsignedLEB128(section.items.length));
+  encodeLEB128U(encoder, sectionSize);
+  encodeLEB128U(encoder, section.items.length);
 
   for (const item of section.items) {
-    sectionContent.push(...encodeFn(item));
+    encodeFn(encoder, item);
   }
-
-  output.push(...toUnsignedLEB128(sectionContent.length));
-  output.push(...sectionContent);
-
-  return output;
 }
 
-export function encodeTypeSection(encoder, typeSection: TypeSection): number[] {
-  return encodeSection(encoder, typeSection, encodeFuncType);
+export function encodeTypeSection(encoder: Encoder, typeSection: TypeSection) {
+  encodeSection(
+    encoder,
+    typeSection,
+    encoder.sizeInfo.sections.types!,
+    encodeFuncType
+  );
 }
 
-export function encodeImportSection(importSection: ImportSection): number[] {
-  return encodeSection(importSection, encodeImportEntry);
+export function encodeImportSection(
+  encoder: Encoder,
+  importSection: ImportSection
+) {
+  encodeSection(
+    encoder,
+    importSection,
+    encoder.sizeInfo.sections.imports!,
+    encodeImportEntry
+  );
 }
 
 export function encodeFunctionSection(
+  encoder: Encoder,
   functionSection: FunctionSection
-): number[] {
-  return encodeSection(functionSection, toUnsignedLEB128);
+) {
+  encodeSection(
+    encoder,
+    functionSection,
+    encoder.sizeInfo.sections.functions!,
+    toUnsignedLEB128
+  );
 }
 
-export function encodeTableSection(tableSection: TableSection): number[] {
-  return encodeSection(tableSection, encodeTableType);
+export function encodeTableSection(
+  encoder: Encoder,
+  tableSection: TableSection
+) {
+  encodeSection(
+    encoder,
+    tableSection,
+    encoder.sizeInfo.sections.tables!,
+    encodeTableType
+  );
 }
 
-export function encodeMemorySection(memorySection: MemorySection): number[] {
-  return encodeSection(memorySection, encodeResizableLimits);
+export function encodeMemorySection(
+  encoder: Encoder,
+  memorySection: MemorySection
+) {
+  return encodeSection(
+    encoder,
+    memorySection,
+    encoder.sizeInfo.sections.memories!,
+    encodeResizableLimits
+  );
 }
 
-export function encodeGlobalSection(globalSection: GlobalSection): number[] {
-  return encodeSection(globalSection, encodeGlobal);
+export function encodeGlobalSection(
+  encoder: Encoder,
+  globalSection: GlobalSection
+) {
+  return encodeSection(
+    encoder,
+    globalSection,
+    encoder.sizeInfo.sections.globals,
+    encodeGlobal
+  );
 }
 
-export function encodeExportSection(exportSection: ExportSection): number[] {
-  return encodeSection(exportSection, encodeExport);
+export function encodeExportSection(
+  encoder: Encoder,
+  exportSection: ExportSection
+) {
+  return encodeSection(
+    encoder,
+    exportSection,
+    encoder.sizeInfo.sections.exports!,
+    encodeExport
+  );
 }
 
-export function encodeStartSection(startSection: StartSection): number[] {
-  const startId = toUnsignedLEB128(startSection.startFunction);
-  return [startSection.id, ...toUnsignedLEB128(startId.length), ...startId];
+export function encodeStartSection(
+  encoder: Encoder,
+  startSection: StartSection
+) {
+  encodeByte(encoder, startSection.id);
+  encodeLEB128U(encoder, encoder.sizeInfo.sections.start!);
+  encodeLEB128U(encoder, startSection.startFunction);
 }
 
-export function encodeElementSection(elementSection: ElementSection): number[] {
-  return encodeSection(elementSection, encodeElement);
+export function encodeElementSection(
+  encoder: Encoder,
+  elementSection: ElementSection
+) {
+  return encodeSection(
+    encoder,
+    elementSection,
+    encoder.sizeInfo.sections.elements!,
+    encodeElement
+  );
 }
 
-export function encodeCodeSection(codeSection: CodeSection): number[] {
-  return encodeSection(codeSection, encodeCode);
+export function encodeCodeSection(encoder: Encoder, codeSection: CodeSection) {
+  return encodeSection(
+    encoder,
+    codeSection,
+    encoder.sizeInfo.sections.code!,
+    encodeCode
+  );
 }
 
-export function encodeDataSection(dataSection: DataSection): number[] {
-  return encodeSection(dataSection, encodeData);
+export function encodeDataSection(encoder: Encoder, dataSection: DataSection) {
+  return encodeSection(
+    encoder,
+    dataSection,
+    encoder.sizeInfo.sections.data!,
+    encodeData
+  );
 }
 
 export function encodeDataCountSection(
+  encoder: Encoder,
   dataCountSection: DataCountSection
-): number[] {
-  const dataCount = toUnsignedLEB128(dataCountSection.dataCount);
-  return [
-    dataCountSection.id,
-    ...toUnsignedLEB128(dataCount.length),
-    ...dataCount,
-  ];
+) {
+  encodeByte(encoder, dataCountSection.id);
+  encodeLEB128U(encoder, encoder.sizeInfo.sections.dataCount!);
+  encodeLEB128U(encoder, dataCountSection.dataCount);
 }
 
-function encodeData(data: Data): number[] {
+function encodeData(encoder: Encoder, data: Data) {
+  encodeByte(encoder, data.id);
+
   switch (data.id) {
     case 0x00:
-      return [
-        0x00,
-        ...data.offsetExpr,
-        0x0b,
-        ...toUnsignedLEB128(data.bytes.length),
-        ...data.bytes,
-      ];
+      encodeExpr(encoder, data.offsetExpr);
+      break;
     case 0x01:
-      return [0x01, ...toUnsignedLEB128(data.bytes.length), ...data.bytes];
+      break;
     case 0x02:
-      return [
-        0x02,
-        ...toUnsignedLEB128(data.memoryIndex),
-        ...data.offsetExpr,
-        0x0b,
-        ...toUnsignedLEB128(data.bytes.length),
-        ...data.bytes,
-      ];
+      encodeLEB128U(encoder, data.memoryIndex);
+      encodeExpr(encoder, data.offsetExpr);
   }
+
+  encodeLEB128U(encoder, data.bytes.length);
+  encodeByteArray(encoder, data.bytes);
 }
 
-function encodeCode(code: Code): number[] {
-  const funcBody = encodeVec([...code.locals], ([varType, count]) => {
-    const output = toUnsignedLEB128(count);
-    output.push(varType);
-    return output;
+function encodeCode(encoder: Encoder, code: Code) {
+  encodeVec(encoder, [...code.locals], (encoder, [varType, count]) => {
+    encodeLEB128U(encoder, count);
+    encodeByte(encoder, varType);
   });
 
-  funcBody.push(...code.code);
-  funcBody.push(0x0b);
-
-  return [...toUnsignedLEB128(funcBody.length), ...funcBody];
+  encodeExpr(encoder, code.code);
 }
 
-function encodeElement(element: Element): number[] {
+function encodeElement(encoder: Encoder, element: Element) {
+  encodeByte(encoder, element.id);
+
   switch (element.id) {
     case 0x00:
-      return [
-        0x00,
-        ...element.offsetExpr,
-        0x0b,
-        ...encodeVec(element.functionIds, toUnsignedLEB128),
-      ];
+      encodeExpr(encoder, element.offsetExpr);
+      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      break;
     case 0x01:
-      return [
-        0x01,
-        element.kind,
-        ...encodeVec(element.functionIds, toUnsignedLEB128),
-      ];
+      encodeByte(encoder, element.kind);
+      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      break;
     case 0x02:
-      return [
-        0x02,
-        ...toUnsignedLEB128(element.tableIndex),
-        ...element.offsetExpr,
-        0x0b,
-        element.kind,
-        ...encodeVec(element.functionIds, toUnsignedLEB128),
-      ];
+      encodeLEB128U(encoder, element.tableIndex);
+      encodeExpr(encoder, element.offsetExpr);
+      encodeByte(encoder, element.kind);
+      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      break;
     case 0x03:
-      return [
-        0x03,
-        element.kind,
-        ...encodeVec(element.functionIds, toUnsignedLEB128),
-      ];
+      encodeByte(encoder, element.kind);
+      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      break;
     case 0x04:
-      return [
-        0x04,
-        ...element.offsetExpr,
-        0x0b,
-        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
-      ];
+      encodeExpr(encoder, element.offsetExpr);
+      encodeVec(encoder, element.initExprs, encodeExpr);
+      break;
     case 0x05:
-      return [
-        0x05,
-        element.refType,
-        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
-      ];
+      encodeByte(encoder, element.refType);
+      encodeVec(encoder, element.initExprs, encodeExpr);
+      break;
     case 0x06:
-      return [
-        0x06,
-        ...toUnsignedLEB128(element.tableIndex),
-        ...element.offsetExpr,
-        0x0b,
-        element.refType,
-        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
-      ];
+      encodeLEB128U(encoder, element.tableIndex);
+      encodeExpr(encoder, element.offsetExpr);
+      encodeByte(encoder, element.refType);
+      encodeVec(encoder, element.initExprs, encodeExpr);
+      break;
     case 0x07:
-      return [
-        0x07,
-        element.refType,
-        ...encodeVec(element.initExprs, (e) => [...e, 0x0b]),
-      ];
+      encodeByte(encoder, element.refType);
+      encodeVec(encoder, element.initExprs, encodeExpr);
   }
 }
 
-function encodeExport(exportEntry: Export): number[] {
-  const encoder = new TextEncoder();
-  const nameBytes = encoder.encode(exportEntry.name);
-  const output = toUnsignedLEB128(nameBytes.length);
-  output.push(...nameBytes);
-  output.push(exportEntry.kind);
-  output.push(...toUnsignedLEB128(exportEntry.index));
-
-  return output;
+function encodeExport(encoder: Encoder, exportEntry: Export) {
+  const nameBytes = encoder.textEncoder.encode(exportEntry.name);
+  encodeLEB128U(encoder, nameBytes.length);
+  encodeByteArray(encoder, nameBytes);
+  encodeByte(encoder, exportEntry.kind);
+  encodeLEB128U(encoder, exportEntry.index);
 }
 
-function encodeFuncType(type: FuncType): number[] {
-  const output = [0x60];
-  output.push(...encodeVec(type.paramTypes, (t: ValueType) => [t]));
-  output.push(...encodeVec(type.returnTypes, (t: ValueType) => [t]));
-
-  return output;
+function encodeFuncType(encoder: Encoder, type: FuncType) {
+  encodeByte(encoder, 0x60);
+  encodeVec(encoder, type.paramTypes, encodeByte);
+  encodeVec(encoder, type.returnTypes, encodeByte);
 }
 
-function encodeImportEntry(importEntry: Import): number[] {
-  const encoder = new TextEncoder();
-  const moduleBytes = encoder.encode(importEntry.module);
-  const output = toUnsignedLEB128(moduleBytes.length);
-  output.push(...moduleBytes);
-  const fieldBytes = encoder.encode(importEntry.field);
-  output.push(...toUnsignedLEB128(fieldBytes.length));
-  output.push(...fieldBytes);
-  output.push(importEntry.description.kind);
+function encodeByteArray(encoder: Encoder, bytes: Uint8Array) {
+  for (let i = 0; i < bytes.length; i++) {
+    encoder.buffer[encoder.index] = bytes[i];
+    encoder.index += 1;
+  }
+}
+
+function encodeImportEntry(encoder: Encoder, importEntry: Import): number[] {
+  const textEncoder = new TextEncoder();
+
+  const moduleBytes = textEncoder.encode(importEntry.module);
+  encodeLEB128U(encoder, moduleBytes.length);
+  encodeByteArray(encoder, moduleBytes);
+
+  const fieldBytes = textEncoder.encode(importEntry.field);
+  encodeLEB128U(encoder, fieldBytes.length);
+  encodeByteArray(encoder, fieldBytes);
+
+  encodeByte(encoder, importEntry.description.kind);
 
   switch (importEntry.description.kind) {
     case ExternalKind.Function:
-      output.push(...toUnsignedLEB128(importEntry.description.typeIndex));
-      return output;
+      encodeLEB128U(encoder, importEntry.description.typeIndex);
+      break;
     case ExternalKind.Table:
-      output.push(...encodeTableType(importEntry.description.tableType));
-      return output;
+      encodeTableType(encoder, importEntry.description.tableType);
+      break;
     case ExternalKind.Memory:
-      output.push(...encodeResizableLimits(importEntry.description.memoryType));
-      return output;
+      encodeResizableLimits(encoder, importEntry.description.memoryType);
+      break;
     case ExternalKind.Global:
-      output.push(...encodeGlobalType(importEntry.description.globalType));
-      return output;
+      encodeGlobalType(encoder, importEntry.description.globalType);
+      break;
   }
 }
 
-function encodeGlobal(global: Global): number[] {
-  return [...encodeGlobalType(global.type), ...global.initExpr, 0x0b];
+function encodeGlobal(encoder: Encoder, global: Global) {
+  encodeGlobalType(encoder, global.type);
+  encodeExpr(encoder, global.initExpr);
+  encodeByte(encoder, 0x0b);
 }
 
-function encodeGlobalType(globalType: GlobalType): number[] {
-  return [globalType.type, globalType.mutability ? 1 : 0];
+function encodeGlobalType(encoder: Encoder, globalType: GlobalType) {
+  encodeByte(encoder, globalType.type);
+  encodeByte(encoder, globalType.mutability ? 1 : 0);
 }
 
-function encodeTableType(tableType: TableType): number[] {
-  const output: number[] = [tableType.elementType];
-  output.push(...encodeResizableLimits(tableType.limits));
-  return output;
+function encodeTableType(encoder: Encoder, tableType: TableType) {
+  encodeByte(encoder, tableType.elementType);
+  encodeResizableLimits(encoder, tableType.limits);
 }
 
-function encodeResizableLimits(resizableLimits: ResizableLimits): number[] {
+function encodeResizableLimits(
+  encoder: Encoder,
+  resizableLimits: ResizableLimits
+) {
   if (resizableLimits.maximum) {
-    return [
-      0x01,
-      ...toUnsignedLEB128(resizableLimits.minimum),
-      ...toUnsignedLEB128(resizableLimits.maximum),
-    ];
+    encodeByte(encoder, 0x01);
+    encodeLEB128U(encoder, resizableLimits.minimum);
+    encodeLEB128U(encoder, resizableLimits.maximum);
+  } else {
+    encodeByte(encoder, 0x00);
+    encodeLEB128U(encoder, resizableLimits.minimum);
   }
-  return [0x00, ...toUnsignedLEB128(resizableLimits.minimum)];
 }
 
-function encodeVec<T>(vec: T[], encodeFn: (e: T) => number[]): number[] {
-  const output = toUnsignedLEB128(vec.length);
-  output.push(...vec.flatMap((e) => encodeFn(e)));
-  return output;
+function encodeExpr(encoder: Encoder, expr: Instruction[]) {
+  encodeByte(encoder, 0x0b);
+}
+
+function encodeVec<T>(
+  encoder: Encoder,
+  vec: T[],
+  encodeFn: (encoder: Encoder, e: T) => void
+) {
+  encodeLEB128U(encoder, vec.length);
+  for (const elem of vec) {
+    encodeFn(encoder, elem);
+  }
 }

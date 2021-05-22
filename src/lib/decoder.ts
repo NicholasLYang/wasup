@@ -607,21 +607,25 @@ function decodeInstruction(decoder: Decoder): Instruction {
   throw new Error(`Unexpected instruction: ${instr.toString(16)}`);
 }
 
-function decodeExpr(decoder: Decoder): Uint8Array {
-  let i = decoder.index;
-  const opcodes = [];
+function decodeExpr(decoder: Decoder): Instruction[] {
+  const expr = [];
 
-  while (decoder.bytes[i] !== 0x0b) {
-    if (decoder.bytes[i] === undefined) {
+  while (true) {
+    const byte = peekByte(decoder);
+
+    if (byte === 0x0b) {
+      decodeByte(decoder);
+      break;
+    }
+    if (byte === undefined) {
       throw new Error(
         `Reached end of program without finding end of expression (0x0b)`
       );
     }
-    opcodes.push(decoder.bytes[i]);
-    i += 1;
+    expr.push(decodeInstruction(decoder));
   }
 
-  return opcodes;
+  return expr;
 }
 
 function decodeImport(decoder: Decoder): Import {

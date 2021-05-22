@@ -119,7 +119,7 @@ export interface GlobalType {
 
 export interface Global {
   type: GlobalType;
-  initExpr: Uint8Array;
+  initExpr: Instruction[];
 }
 
 export enum ElementKind {
@@ -129,7 +129,7 @@ export enum ElementKind {
 export type Element =
   | {
       id: 0x00; // Active mode
-      offsetExpr: Uint8Array;
+      offsetExpr: Instruction[];
       functionIds: FuncId[];
     }
   | {
@@ -140,7 +140,7 @@ export type Element =
   | {
       id: 0x02; // Active
       tableIndex: number;
-      offsetExpr: Uint8Array;
+      offsetExpr: Instruction[];
       kind: ElementKind;
       functionIds: FuncId[];
     }
@@ -151,25 +151,25 @@ export type Element =
     }
   | {
       id: 0x04; // Active
-      offsetExpr: Uint8Array;
-      initExprs: Uint8Array[];
+      offsetExpr: Instruction[];
+      initExprs: Instruction[][];
     }
   | {
       id: 0x05; // Passive
       refType: RefType;
-      initExprs: Uint8Array[];
+      initExprs: Instruction[][];
     }
   | {
       id: 0x06; // Active
       tableIndex: number;
-      offsetExpr: Uint8Array;
+      offsetExpr: Instruction[];
       refType: RefType;
-      initExprs: Uint8Array[];
+      initExprs: Instruction[][];
     }
   | {
       id: 0x07; // Declarative
       refType: RefType;
-      initExprs: Uint8Array[];
+      initExprs: Instruction[][];
     };
 
 export type LocalVariables = Map<ValueType, number>;
@@ -182,7 +182,7 @@ export interface Code {
 export type Data =
   | {
       id: 0x00;
-      offsetExpr: Uint8Array;
+      offsetExpr: Instruction[];
       bytes: Uint8Array;
     }
   | {
@@ -192,7 +192,7 @@ export type Data =
   | {
       id: 0x02;
       memoryIndex: number;
-      offsetExpr: Uint8Array;
+      offsetExpr: Instruction[];
       bytes: Uint8Array;
     };
 

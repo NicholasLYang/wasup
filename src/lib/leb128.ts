@@ -14,7 +14,7 @@ export function getHighestBit(n: number): number {
  * @param n - Number not encoded.
  * @returns Width of the encoded number in bytes.
  */
-export function getEncodedSize(n: number): number {
+export function getLEB128USize(n: number): number {
   if (n < 2 ** 7 - 1) {
     return 1;
   }
