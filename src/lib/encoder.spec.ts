@@ -1,12 +1,20 @@
-import test from 'ava';
+import test, { ExecutionContext } from 'ava';
+
 import { createModule } from './builder';
 import {
   encodeImportSection,
   encodeModule,
   encodeTypeSection,
 } from './encoder';
-import { ExternalKind, NumType, RefType } from './wasm';
-import { getTypeSectionSize } from './size';
+import { getImportSectionSize, getTypeSectionSize } from './size';
+import {
+  ExternalKind,
+  ImportSection,
+  InstrType,
+  NumType,
+  RefType,
+  TypeSection,
+} from './wasm';
 
 const emptyModule = createModule();
 
@@ -34,7 +42,14 @@ test('encodeModule', (t) => {
         items: [
           {
             locals: localVariables,
-            code: new Uint8Array([0x20, 0, 0x41, 2, 0x6c]),
+            code: {
+              instructions: [
+                [InstrType.LocalGet, 0],
+                [InstrType.I32Const, 2],
+                [InstrType.I32Mul],
+              ],
+              length: 5,
+            },
           },
         ],
       },
@@ -123,34 +138,41 @@ test('encodeModule', (t) => {
   );
 });
 
+function testTypeSection(
+  t: ExecutionContext<unknown>,
+  typeSection: TypeSection,
+  expected: Uint8Array
+) {
+  const typeSectionSize = getTypeSectionSize(typeSection);
+
+  const encoder = {
+    buffer: new Uint8Array(typeSectionSize),
+    sizeInfo: {
+      total: typeSectionSize,
+      sections: { types: typeSectionSize },
+    },
+    index: 0,
+    textEncoder: new TextEncoder(),
+  };
+
+  encodeTypeSection(encoder, typeSection);
+
+  t.deepEqual(encoder.buffer, expected);
+}
+
 test('encodeTypeSection', (t) => {
-  {
-    const typeSection = {
+  testTypeSection(
+    t,
+    {
       id: 1 as const,
       items: [{ paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] }],
-    };
-    const typeSectionSize = getTypeSectionSize(typeSection);
+    },
+    new Uint8Array([1, 6, 1, 0x60, 1, 0x7f, 1, 0x70])
+  );
 
-    const encoder = {
-      buffer: new Uint8Array(typeSectionSize),
-      sizeInfo: {
-        total: typeSectionSize,
-        sections: { types: typeSectionSize },
-      },
-      index: 0,
-      textEncoder: new TextEncoder(),
-    };
-
-    encodeTypeSection(encoder, typeSection);
-
-    t.deepEqual(
-      encoder.buffer,
-      new Uint8Array([1, 6, 1, 0x60, 1, 0x7f, 1, 0x70])
-    );
-  }
-
-  t.deepEqual(
-    encodeTypeSection({
+  testTypeSection(
+    t,
+    {
       id: 1,
       items: [
         { paramTypes: [NumType.i32], returnTypes: [RefType.funcRef] },
@@ -159,14 +181,53 @@ test('encodeTypeSection', (t) => {
           returnTypes: [RefType.funcRef, NumType.f64],
         },
       ],
-    }),
-    [1, 13, 2, 0x60, 1, 0x7f, 1, 0x70, 0x60, 2, 0x7f, 0x7f, 2, 0x70, 0x7c]
+    },
+    new Uint8Array([
+      1,
+      13,
+      2,
+      0x60,
+      1,
+      0x7f,
+      1,
+      0x70,
+      0x60,
+      2,
+      0x7f,
+      0x7f,
+      2,
+      0x70,
+      0x7c,
+    ])
   );
 });
 
+function testImportSection(
+  t: ExecutionContext<unknown>,
+  typeSection: ImportSection,
+  expected: Uint8Array
+) {
+  const importSectionSize = getImportSectionSize(typeSection);
+
+  const encoder = {
+    buffer: new Uint8Array(importSectionSize),
+    sizeInfo: {
+      total: importSectionSize,
+      sections: { imports: importSectionSize },
+    },
+    index: 0,
+    textEncoder: new TextEncoder(),
+  };
+
+  encodeImportSection(encoder, typeSection);
+
+  t.deepEqual(encoder.buffer, expected);
+}
+
 test('encodeImportSection', (t) => {
-  t.deepEqual(
-    encodeImportSection({
+  testImportSection(
+    t,
+    {
       id: 2,
       items: [
         {
@@ -175,12 +236,13 @@ test('encodeImportSection', (t) => {
           description: { kind: ExternalKind.Function, typeIndex: 0 },
         },
       ],
-    }),
-    [2, 13, 1, 3, 115, 116, 100, 5, 97, 108, 108, 111, 99, 0, 0]
+    },
+    new Uint8Array([2, 13, 1, 3, 115, 116, 100, 5, 97, 108, 108, 111, 99, 0, 0])
   );
 
-  t.deepEqual(
-    encodeImportSection({
+  testImportSection(
+    t,
+    {
       id: 2,
       items: [
         {
@@ -192,7 +254,26 @@ test('encodeImportSection', (t) => {
           },
         },
       ],
-    }),
-    [2, 16, 1, 3, 115, 116, 100, 6, 109, 101, 109, 111, 114, 121, 2, 1, 1, 100]
+    },
+    new Uint8Array([
+      2,
+      16,
+      1,
+      3,
+      115,
+      116,
+      100,
+      6,
+      109,
+      101,
+      109,
+      111,
+      114,
+      121,
+      2,
+      1,
+      1,
+      100,
+    ])
   );
 });

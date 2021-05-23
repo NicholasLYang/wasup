@@ -1,6 +1,6 @@
 import test from 'ava';
 import { createModule } from './builder';
-import { NumType, RefType } from './wasm';
+import { InstrType, NumType, RefType } from './wasm';
 import { decodeModule } from './decoder';
 
 const emptyModule = createModule();
@@ -69,7 +69,14 @@ test('decodeModule', (t) => {
         items: [
           {
             locals: localVariables,
-            code: new Uint8Array([0x20, 0, 0x41, 2, 0x6c]),
+            code: {
+              instructions: [
+                [InstrType.LocalGet, 0],
+                [InstrType.I32Const, 2],
+                [InstrType.I32Mul],
+              ],
+              length: 5,
+            },
           },
         ],
       },

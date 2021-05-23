@@ -564,6 +564,7 @@ export type Instruction =
   | [InstrType.I64Extend32S]
   | [InstrType.Block, BlockType, Expr]
   | [InstrType.Loop, BlockType, Expr]
+  | [InstrType.If, BlockType, Expr]
   | [InstrType.If, BlockType, Expr, Expr]
   | [InstrType.Else]
   | [InstrType.Br, number]

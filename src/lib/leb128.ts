@@ -62,7 +62,7 @@ export function toUnsignedLEB128(
   }
 
   buffer[i] = n;
-  return i;
+  return i + 1;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   Element,
   ElementKind,
   Export,
+  Expr,
   ExternalKind,
   FuncType,
   Global,
@@ -283,9 +284,6 @@ function decodeData(decoder: Decoder): Data {
 }
 
 function decodeCode(decoder: Decoder): Code {
-  const size = decodeLEB128U(decoder);
-  const startIndex = decoder.index;
-
   const localsArray = decodeVector(decoder, (decoder) => {
     const count = decodeLEB128U(decoder);
     const type = decodeValueType(decoder);
@@ -297,8 +295,7 @@ function decodeCode(decoder: Decoder): Code {
   for (const { count, type } of localsArray) {
     locals.set(type, count);
   }
-  const codeBodySize = size - (decoder.index - startIndex);
-  const code = decoder.bytes.slice(decoder.index, decoder.index + codeBodySize);
+  const code = decodeExpr(decoder);
 
   return { locals, code };
 }
@@ -430,35 +427,43 @@ function decodeInstruction(decoder: Decoder): Instruction {
     case InstrType.Block:
     case InstrType.Loop: {
       const blockType = decodeBlockType(decoder);
-      const block = [];
-
-      while (peekByte(decoder) != 0x0b) {
-        block.push(decodeInstruction(decoder));
-      }
+      const block = decodeExpr(decoder);
 
       return [instr, blockType, block];
     }
     case InstrType.If: {
       const blockType = decodeBlockType(decoder);
-      const thenBlock = [];
+      const thenInstrs = [];
+      const startIndex = decoder.index;
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const byte = peekByte(decoder);
 
         if (byte === 0x0b) {
-          return [instr, blockType, thenBlock, []];
+          decodeByte(decoder);
+
+          const thenBlock = {
+            instructions: thenInstrs,
+            length: decoder.index - startIndex,
+          };
+
+          return [instr, blockType, thenBlock];
         }
 
         if (byte === 0x05) {
-          const elseBlock = [];
-          while (peekByte(decoder) != 0x0b) {
-            elseBlock.push(decodeInstruction(decoder));
-          }
+          decodeByte(decoder);
+
+          const thenBlock = {
+            instructions: thenInstrs,
+            length: decoder.index - startIndex,
+          };
+          const elseBlock = decodeExpr(decoder);
+
           return [instr, blockType, thenBlock, elseBlock];
         }
 
-        thenBlock.push(decodeInstruction(decoder));
+        thenInstrs.push(decodeInstruction(decoder));
       }
     }
     case InstrType.Br:
@@ -607,8 +612,9 @@ function decodeInstruction(decoder: Decoder): Instruction {
   throw new Error(`Unexpected instruction: ${instr.toString(16)}`);
 }
 
-function decodeExpr(decoder: Decoder): Instruction[] {
-  const expr = [];
+function decodeExpr(decoder: Decoder): Expr {
+  const instructions = [];
+  const startIndex = decoder.index;
 
   while (true) {
     const byte = peekByte(decoder);
@@ -625,10 +631,10 @@ function decodeExpr(decoder: Decoder): Instruction[] {
       );
     }
 
-    expr.push(decodeInstruction(decoder));
+    instructions.push(decodeInstruction(decoder));
   }
 
-  return expr;
+  return { instructions, length: decoder.index - startIndex };
 }
 
 function decodeImport(decoder: Decoder): Import {
@@ -779,5 +785,7 @@ function decodeValueType(decoder: Decoder): ValueType {
     case 0x6f:
       return RefType.externRef;
   }
-  throw new Error(`Expected value type, received ${valType.toString(16)}`);
+  throw new Error(
+    `${decoder.index}: Expected value type, received ${valType.toString(16)}`
+  );
 }
