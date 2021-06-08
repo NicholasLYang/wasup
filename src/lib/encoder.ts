@@ -1,5 +1,6 @@
-import { toUnsignedLEB128 } from './leb128';
+import { toLEB128S, toLEB128U } from './leb128';
 import {
+  BlockType,
   Code,
   CodeSection,
   Data,
@@ -18,8 +19,11 @@ import {
   GlobalType,
   Import,
   ImportSection,
+  InstrType,
+  Instruction,
   MemorySection,
   Module,
+  OtherInstrType,
   ResizableLimits,
   Section,
   StartSection,
@@ -61,8 +65,38 @@ function encodePreamble(encoder: Encoder) {
   encoder.index = 8;
 }
 
+function encodeLEB128S(encoder: Encoder, int: number) {
+  encoder.index = toLEB128S(int, encoder.buffer, encoder.index);
+}
+
 function encodeLEB128U(encoder: Encoder, int: number) {
-  encoder.index = toUnsignedLEB128(int, encoder.buffer, encoder.index);
+  encoder.index = toLEB128U(int, encoder.buffer, encoder.index);
+}
+
+function encodeFloat32(encoder: Encoder, float: number) {
+  const floatArray = new Float32Array(1);
+  floatArray[0] = float;
+  const byteArray = new Uint8Array(floatArray.buffer);
+  encoder.buffer[encoder.index] = byteArray[0];
+  encoder.buffer[encoder.index + 1] = byteArray[1];
+  encoder.buffer[encoder.index + 2] = byteArray[2];
+  encoder.buffer[encoder.index + 3] = byteArray[3];
+  encoder.index = encoder.index + 4;
+}
+
+function encodeFloat64(encoder: Encoder, float: number) {
+  const floatArray = new Float64Array(1);
+  floatArray[0] = float;
+  const byteArray = new Uint8Array(floatArray.buffer);
+  encoder.buffer[encoder.index] = byteArray[0];
+  encoder.buffer[encoder.index + 1] = byteArray[1];
+  encoder.buffer[encoder.index + 2] = byteArray[2];
+  encoder.buffer[encoder.index + 3] = byteArray[3];
+  encoder.buffer[encoder.index + 4] = byteArray[4];
+  encoder.buffer[encoder.index + 5] = byteArray[5];
+  encoder.buffer[encoder.index + 6] = byteArray[6];
+  encoder.buffer[encoder.index + 7] = byteArray[7];
+  encoder.index = encoder.index + 8;
 }
 
 function encodeByte(encoder: Encoder, byte: number) {
@@ -139,7 +173,6 @@ function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
   sectionSize: number,
   encodeFn: (encoder: Encoder, item: Item) => void
 ) {
-  const startIndex = encoder.index;
   encodeByte(encoder, section.id);
   encodeLEB128U(encoder, sectionSize);
   encodeLEB128U(encoder, section.items.length);
@@ -296,7 +329,7 @@ function encodeData(encoder: Encoder, data: Data) {
 }
 
 function encodeCode(encoder: Encoder, code: Code) {
-  encodeVec(encoder, [...code.locals], (encoder, [varType, count]) => {
+  encodeVector(encoder, [...code.locals], (encoder, [varType, count]) => {
     encodeLEB128U(encoder, count);
     encodeByte(encoder, varType);
   });
@@ -310,39 +343,39 @@ function encodeElement(encoder: Encoder, element: Element) {
   switch (element.id) {
     case 0x00:
       encodeExpr(encoder, element.offsetExpr);
-      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      encodeVector(encoder, element.functionIds, encodeLEB128U);
       break;
     case 0x01:
       encodeByte(encoder, element.kind);
-      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      encodeVector(encoder, element.functionIds, encodeLEB128U);
       break;
     case 0x02:
       encodeLEB128U(encoder, element.tableIndex);
       encodeExpr(encoder, element.offsetExpr);
       encodeByte(encoder, element.kind);
-      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      encodeVector(encoder, element.functionIds, encodeLEB128U);
       break;
     case 0x03:
       encodeByte(encoder, element.kind);
-      encodeVec(encoder, element.functionIds, encodeLEB128U);
+      encodeVector(encoder, element.functionIds, encodeLEB128U);
       break;
     case 0x04:
       encodeExpr(encoder, element.offsetExpr);
-      encodeVec(encoder, element.initExprs, encodeExpr);
+      encodeVector(encoder, element.initExprs, encodeExpr);
       break;
     case 0x05:
       encodeByte(encoder, element.refType);
-      encodeVec(encoder, element.initExprs, encodeExpr);
+      encodeVector(encoder, element.initExprs, encodeExpr);
       break;
     case 0x06:
       encodeLEB128U(encoder, element.tableIndex);
       encodeExpr(encoder, element.offsetExpr);
       encodeByte(encoder, element.refType);
-      encodeVec(encoder, element.initExprs, encodeExpr);
+      encodeVector(encoder, element.initExprs, encodeExpr);
       break;
     case 0x07:
       encodeByte(encoder, element.refType);
-      encodeVec(encoder, element.initExprs, encodeExpr);
+      encodeVector(encoder, element.initExprs, encodeExpr);
   }
 }
 
@@ -359,8 +392,8 @@ function encodeFuncType(encoder: Encoder, type: FuncType) {
   console.log('BEFORE');
   console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 10)));
   encodeByte(encoder, 0x60);
-  encodeVec(encoder, type.paramTypes, encodeByte);
-  encodeVec(encoder, type.returnTypes, encodeByte);
+  encodeVector(encoder, type.paramTypes, encodeByte);
+  encodeVector(encoder, type.returnTypes, encodeByte);
   console.log('AFTER');
   console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 10)));
 }
@@ -434,10 +467,13 @@ function encodeResizableLimits(
 }
 
 function encodeExpr(encoder: Encoder, expr: Expr) {
+  for (const instr of expr.instructions) {
+    encodeInstruction(encoder, instr);
+  }
   encodeByte(encoder, 0x0b);
 }
 
-function encodeVec<T>(
+function encodeVector<T>(
   encoder: Encoder,
   vec: T[],
   encodeFn: (encoder: Encoder, e: T) => void
@@ -445,5 +481,144 @@ function encodeVec<T>(
   encodeLEB128U(encoder, vec.length);
   for (const elem of vec) {
     encodeFn(encoder, elem);
+  }
+}
+
+function encodeBlockType(encoder: Encoder, blockType: BlockType) {
+  if ('valueType' in blockType) {
+    encodeByte(encoder, blockType.valueType);
+  } else if ('typeIndex' in blockType) {
+    encodeLEB128S(encoder, blockType.typeIndex);
+  }
+}
+
+function encodeInstruction(encoder: Encoder, instr: Instruction) {
+  encodeByte(encoder, instr[0]);
+  switch (instr[0]) {
+    case InstrType.Block:
+    case InstrType.Loop: {
+      encodeBlockType(encoder, instr[1]);
+      encodeExpr(encoder, instr[2]);
+      break;
+    }
+    case InstrType.If: {
+      encodeBlockType(encoder, instr[1]);
+      // No else
+      if (instr.length === 3) {
+        encodeExpr(encoder, instr[2]);
+        encodeByte(encoder, 0x0b);
+      } else if (instr.length === 4) {
+        encodeExpr(encoder, instr[2]);
+        encodeByte(encoder, 0x05);
+        encodeExpr(encoder, instr[3]);
+        encodeByte(encoder, 0x0b);
+      }
+      break;
+    }
+    case InstrType.Br:
+    case InstrType.BrIf:
+    case InstrType.Call:
+    case InstrType.RefFunc:
+    case InstrType.LocalGet:
+    case InstrType.LocalSet:
+    case InstrType.LocalTee:
+    case InstrType.GlobalGet:
+    case InstrType.GlobalSet:
+    case InstrType.TableGet:
+    case InstrType.TableSet: {
+      encodeLEB128U(encoder, instr[1]);
+      break;
+    }
+    case InstrType.Other: {
+      encodeLEB128U(encoder, instr[1]);
+      switch (instr[1]) {
+        case OtherInstrType.TableInit:
+        case OtherInstrType.TableCopy: {
+          encodeLEB128U(encoder, instr[2]);
+          encodeLEB128U(encoder, instr[3]);
+          break;
+        }
+        case OtherInstrType.ElemDrop:
+        case OtherInstrType.TableGrow:
+        case OtherInstrType.TableSize:
+        case OtherInstrType.TableFill:
+        case OtherInstrType.DataDrop: {
+          encodeLEB128U(encoder, instr[2]);
+          break;
+        }
+        case OtherInstrType.MemoryCopy: {
+          encodeByte(encoder, 0x00);
+          encodeByte(encoder, 0x00);
+          break;
+        }
+        case OtherInstrType.MemoryFill: {
+          encodeByte(encoder, 0x00);
+          break;
+        }
+        default: {
+          throw new Error(`Unexpected instruction: ${instr[1].toString(16)}`);
+        }
+      }
+      break;
+    }
+    case InstrType.I32Load:
+    case InstrType.I64Load:
+    case InstrType.F32Load:
+    case InstrType.F64Load:
+    case InstrType.I32Load8S:
+    case InstrType.I32Load8U:
+    case InstrType.I32Load16S:
+    case InstrType.I32Load16U:
+    case InstrType.I64Load8S:
+    case InstrType.I64Load8U:
+    case InstrType.I64Load16S:
+    case InstrType.I64Load16U:
+    case InstrType.I64Load32S:
+    case InstrType.I64Load32U:
+    case InstrType.I32Store:
+    case InstrType.I64Store:
+    case InstrType.F32Store:
+    case InstrType.F64Store:
+    case InstrType.I32Store8:
+    case InstrType.I32Store16:
+    case InstrType.I64Store8:
+    case InstrType.I64Store16:
+    case InstrType.I64Store32:
+    case InstrType.CallIndirect: {
+      encodeLEB128U(encoder, instr[1]);
+      encodeLEB128U(encoder, instr[2]);
+      break;
+    }
+    case InstrType.BrTable: {
+      encodeVector(encoder, instr[1], encodeLEB128U);
+      encodeLEB128U(encoder, instr[2]);
+      break;
+    }
+    case InstrType.RefNull: {
+      encodeByte(encoder, instr[1]);
+      break;
+    }
+    case InstrType.SelectT: {
+      encodeVector(encoder, instr[1], encodeByte);
+      break;
+    }
+    case InstrType.MemorySize:
+    case InstrType.MemoryGrow: {
+      encodeByte(encoder, 0x00);
+      break;
+    }
+    case InstrType.I32Const:
+    case InstrType.I64Const: {
+      encodeLEB128S(encoder, instr[1]);
+      break;
+    }
+    case InstrType.F32Const: {
+      encodeFloat32(encoder, instr[1]);
+      break;
+    }
+    case InstrType.F64Const: {
+      encodeFloat64(encoder, instr[1]);
+      break;
+    }
   }
 }

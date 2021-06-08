@@ -41,10 +41,10 @@ test('getImportSectionSize', (t) => {
 
 test('getFunctionSectionSize', (t) => {
   t.is(
+    5,
     getFunctionSectionSize({
       id: 3,
       items: [0, 1, 2, 1],
-    }),
-    5
+    })
   );
 });

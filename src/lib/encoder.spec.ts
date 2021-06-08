@@ -157,7 +157,7 @@ function testTypeSection(
 
   encodeTypeSection(encoder, typeSection);
 
-  t.deepEqual(encoder.buffer, expected);
+  t.deepEqual(expected, encoder.buffer);
 }
 
 test('encodeTypeSection', (t) => {

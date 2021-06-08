@@ -191,11 +191,6 @@ export function getVecSize<T>(entries: T[], sizeFn: (e: T) => number) {
   return vecSize;
 }
 
-export function getSectionSize<T>(items: T[], sizeFn: (e: T) => number) {
-  const contentSize = getVecSize(items, sizeFn);
-  return 1 + getLEB128USize(contentSize) + contentSize;
-}
-
 /**
  * Gets size of type section, excluding
  * the standard section preamble
@@ -204,7 +199,7 @@ export function getSectionSize<T>(items: T[], sizeFn: (e: T) => number) {
  * @returns Size of types section in bytes
  */
 export function getTypeSectionSize(typeSection: TypeSection) {
-  return getSectionSize(typeSection.items, getFuncTypeSize);
+  return getVecSize(typeSection.items, getFuncTypeSize);
 }
 
 /**
@@ -215,7 +210,7 @@ export function getTypeSectionSize(typeSection: TypeSection) {
  * @returns Size of import section in bytes
  */
 export function getImportSectionSize(importSection: ImportSection) {
-  return getSectionSize(importSection.items, getImportEntrySize);
+  return getVecSize(importSection.items, getImportEntrySize);
 }
 
 /**
@@ -226,7 +221,7 @@ export function getImportSectionSize(importSection: ImportSection) {
  * @returns Size of function section in bytes
  */
 export function getFunctionSectionSize(functionSection: FunctionSection) {
-  return getSectionSize(functionSection.items, getLEB128USize);
+  return getVecSize(functionSection.items, getLEB128USize);
 }
 
 /**
@@ -237,7 +232,7 @@ export function getFunctionSectionSize(functionSection: FunctionSection) {
  * @returns Size of table section in bytes
  */
 export function getTableSectionSize(tableSection: TableSection) {
-  return getSectionSize(tableSection.items, getTableTypeSize);
+  return getVecSize(tableSection.items, getTableTypeSize);
 }
 
 /**
@@ -248,7 +243,7 @@ export function getTableSectionSize(tableSection: TableSection) {
  * @returns Size of memory section in bytes
  */
 export function getMemorySectionSize(memorySection: MemorySection) {
-  return getSectionSize(memorySection.items, getResizeableLimitsSize);
+  return getVecSize(memorySection.items, getResizeableLimitsSize);
 }
 
 /**
@@ -259,7 +254,7 @@ export function getMemorySectionSize(memorySection: MemorySection) {
  * @returns Size of global section in bytes
  */
 export function getGlobalSectionSize(globalSection: GlobalSection) {
-  return getSectionSize(globalSection.items, getGlobalSize);
+  return getVecSize(globalSection.items, getGlobalSize);
 }
 
 /**
@@ -270,7 +265,7 @@ export function getGlobalSectionSize(globalSection: GlobalSection) {
  * @returns Size of export section in bytes
  */
 export function getExportSectionSize(exportSection: ExportSection) {
-  return getSectionSize(exportSection.items, getExportSize);
+  return getVecSize(exportSection.items, getExportSize);
 }
 
 /**
@@ -281,7 +276,7 @@ export function getExportSectionSize(exportSection: ExportSection) {
  * @returns Size of start section in bytes
  */
 export function getStartSectionSize(startSection: StartSection) {
-  return getSectionSize([startSection.startFunction], getLEB128USize);
+  return getVecSize([startSection.startFunction], getLEB128USize);
 }
 
 /**
@@ -292,7 +287,7 @@ export function getStartSectionSize(startSection: StartSection) {
  * @returns Size of element section in bytes
  */
 export function getElementSectionSize(elementSection: ElementSection) {
-  return getSectionSize(elementSection.items, getElementSize);
+  return getVecSize(elementSection.items, getElementSize);
 }
 
 /**
@@ -303,7 +298,7 @@ export function getElementSectionSize(elementSection: ElementSection) {
  * @returns Size of code section in bytes
  */
 export function getCodeSectionSize(codeSection: CodeSection) {
-  return getSectionSize(codeSection.items, getFunctionBodySize);
+  return getVecSize(codeSection.items, getFunctionBodySize);
 }
 
 /**
@@ -314,7 +309,7 @@ export function getCodeSectionSize(codeSection: CodeSection) {
  * @returns Size of data section in bytes
  */
 export function getDataSectionSize(dataSection: DataSection) {
-  return getSectionSize(dataSection.items, getDataSize);
+  return getVecSize(dataSection.items, getDataSize);
 }
 
 /**

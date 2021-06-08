@@ -565,7 +565,7 @@ function decodeInstruction(decoder: Decoder): Instruction {
       const labels = decodeVector(decoder, decodeLEB128U);
       const defaultLabel = decodeLEB128U(decoder);
 
-      return [instr, ...labels, defaultLabel];
+      return [instr, labels, defaultLabel];
     }
     case InstrType.RefNull: {
       const refType = decodeRefType(decoder);
@@ -573,7 +573,7 @@ function decodeInstruction(decoder: Decoder): Instruction {
     }
     case InstrType.SelectT: {
       const types = decodeVector(decoder, decodeValueType);
-      return [instr, ...types];
+      return [instr, types];
     }
     case InstrType.MemorySize: {
       const byte = decodeByte(decoder);

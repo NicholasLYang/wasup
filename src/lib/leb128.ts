@@ -44,7 +44,7 @@ export function getLEB128USize(n: number): number {
  * @param startIndex - Start index for writing
  * @returns End index for encoder.
  */
-export function toUnsignedLEB128(
+export function toLEB128U(
   n: number,
   buffer: Uint8Array,
   startIndex: number
@@ -63,6 +63,37 @@ export function toUnsignedLEB128(
 
   buffer[i] = n;
   return i + 1;
+}
+
+/**
+ * Converts a number n to signed LEB128
+ *
+ * @param n - Must be an integer.
+ * @param buffer - Buffer to write into
+ * @param startIndex - Start index for writing
+ * @returns End index for encoder.
+ */
+export function toLEB128S(
+  n: number,
+  buffer: Uint8Array,
+  startIndex: number
+): number {
+  if (!Number.isInteger(n)) {
+    throw new RangeError(`n must be an integer, instead is ${n}`);
+  }
+
+  let i = startIndex;
+  n |= 0;
+  while (true) {
+    const byte = n & 0x7f;
+    n >>= 7;
+    if ((n === 0 && (byte & 0x40) === 0) || (n === -1 && (byte & 0x40) !== 0)) {
+      buffer[i] = byte;
+      return i + 1;
+    }
+    buffer[i] = byte | 0x80;
+    i += 1;
+  }
 }
 
 /**
