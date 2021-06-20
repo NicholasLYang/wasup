@@ -1,5 +1,6 @@
 import { createModule } from './builder';
 import { fromLEB128S, fromLEB128U } from './leb128';
+import { buf2hex } from './utils';
 import {
   BlockType,
   Code,
@@ -155,12 +156,6 @@ export function decodeSection(decoder: Decoder, module: Module) {
     decoder.decodedSections.add(id);
   }
 
-  console.log(
-    `DECODING ${SECTION_NAMES[id]} INDEX IS ${startIndex.toString(
-      16
-    )} LENGTH IS ${size}`
-  );
-
   switch (id) {
     case 0: {
       const name = decodeString(decoder);
@@ -284,6 +279,9 @@ function decodeData(decoder: Decoder): Data {
 }
 
 function decodeCode(decoder: Decoder): Code {
+  const codeSize = decodeLEB128U(decoder);
+  const startIndex = decoder.index;
+
   const localsArray = decodeVector(decoder, (decoder) => {
     const count = decodeLEB128U(decoder);
     const type = decodeValueType(decoder);
@@ -296,6 +294,10 @@ function decodeCode(decoder: Decoder): Code {
     locals.set(type, count);
   }
   const code = decodeExpr(decoder);
+
+  if (decoder.index - startIndex !== codeSize) {
+    throw new Error(`Code body is not ${codeSize} bytes long as expected`);
+  }
 
   return { locals, code };
 }

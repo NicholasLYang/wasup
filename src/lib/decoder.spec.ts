@@ -75,7 +75,7 @@ test('decodeModule', (t) => {
                 [InstrType.I32Const, 2],
                 [InstrType.I32Mul],
               ],
-              length: 5,
+              length: 6,
             },
           },
         ],

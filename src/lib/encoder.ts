@@ -31,7 +31,8 @@ import {
   TableType,
   TypeSection,
 } from './wasm';
-import { getModuleSize, SizeInfo } from './size';
+import { getFunctionBodySize, getModuleSize, SizeInfo } from './size';
+import { buf2hex } from './utils';
 
 interface Encoder {
   buffer: Uint8Array;
@@ -160,11 +161,6 @@ export function encodeModule(module: Module): Uint8Array {
   }
 
   return encoder.buffer;
-}
-
-function buf2hex(buffer: Uint8Array): string {
-  // buffer is an ArrayBuffer
-  return [...buffer].map((x) => x.toString(16).padStart(2, '0')).join(', ');
 }
 
 function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
@@ -329,6 +325,8 @@ function encodeData(encoder: Encoder, data: Data) {
 }
 
 function encodeCode(encoder: Encoder, code: Code) {
+  const codeBodySize = getFunctionBodySize(code);
+  encodeLEB128U(encoder, codeBodySize);
   encodeVector(encoder, [...code.locals], (encoder, [varType, count]) => {
     encodeLEB128U(encoder, count);
     encodeByte(encoder, varType);
@@ -388,14 +386,9 @@ function encodeExport(encoder: Encoder, exportEntry: Export) {
 }
 
 function encodeFuncType(encoder: Encoder, type: FuncType) {
-  const startIndex = encoder.index;
-  console.log('BEFORE');
-  console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 10)));
   encodeByte(encoder, 0x60);
   encodeVector(encoder, type.paramTypes, encodeByte);
   encodeVector(encoder, type.returnTypes, encodeByte);
-  console.log('AFTER');
-  console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 10)));
 }
 
 function encodeByteArray(encoder: Encoder, bytes: Uint8Array) {
@@ -415,11 +408,8 @@ function encodeImportEntry(encoder: Encoder, importEntry: Import) {
   const fieldBytes = textEncoder.encode(importEntry.field);
   encodeLEB128U(encoder, fieldBytes.length);
   encodeByteArray(encoder, fieldBytes);
-  console.log('1');
-  console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 20)));
   encodeByte(encoder, importEntry.description.kind);
-  console.log('2');
-  console.log(buf2hex(encoder.buffer.slice(startIndex, startIndex + 20)));
+
   switch (importEntry.description.kind) {
     case ExternalKind.Function:
       encodeLEB128U(encoder, importEntry.description.typeIndex);

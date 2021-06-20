@@ -149,13 +149,16 @@ function getElementSize(element: Element) {
   return elementSize;
 }
 
-function getFunctionBodySize(body: Code): number {
-  const localsSize = getVecSize(Object.entries(body.locals), ([_, count]) => {
+// Get the function body size WITHOUT the size prefix.
+// Code bodies in WASM have a size prefix that gives the
+// size of the body in bytes. For figuring out the total
+// size of the module, we have to include this. For figuring
+// out the size itself to encode, we don't want to include it
+export function getFunctionBodySize(body: Code): number {
+  const localsSize = getVecSize([...body.locals.entries()], ([_, count]) => {
     return 1 + getLEB128USize(count);
   });
-
-  const bodySize = body.code.length + localsSize;
-  return getLEB128USize(bodySize) + bodySize;
+  return body.code.length + localsSize;
 }
 
 function getDataSize(data: Data) {
@@ -276,7 +279,7 @@ export function getExportSectionSize(exportSection: ExportSection) {
  * @returns Size of start section in bytes
  */
 export function getStartSectionSize(startSection: StartSection) {
-  return getVecSize([startSection.startFunction], getLEB128USize);
+  return getLEB128USize(startSection.startFunction);
 }
 
 /**
@@ -298,7 +301,10 @@ export function getElementSectionSize(elementSection: ElementSection) {
  * @returns Size of code section in bytes
  */
 export function getCodeSectionSize(codeSection: CodeSection) {
-  return getVecSize(codeSection.items, getFunctionBodySize);
+  return getVecSize(codeSection.items, (item) => {
+    const bodySize = getFunctionBodySize(item);
+    return getLEB128USize(bodySize) + bodySize;
+  });
 }
 
 /**
@@ -354,64 +360,64 @@ export function getModuleSize(module: Module): SizeInfo {
   const sections: Partial<SizeInfo['sections']> = {};
   let totalSize = 8; // Magic number + version
 
-  if (module.types) {
+  if (module.types.items.length > 0) {
     sections.types = getTypeSectionSize(module.types);
-    totalSize += sections.types;
+    totalSize += 1 + getLEB128USize(sections.types) + sections.types;
   }
 
-  if (module.imports) {
+  if (module.imports.items.length > 0) {
     sections.imports = getImportSectionSize(module.imports);
-    totalSize += sections.imports;
+    totalSize += 1 + getLEB128USize(sections.imports) + sections.imports;
   }
 
-  if (module.functions) {
+  if (module.functions.items.length > 0) {
     sections.functions = getFunctionSectionSize(module.functions);
-    totalSize += sections.functions;
+    totalSize += 1 + getLEB128USize(sections.functions) + sections.functions;
   }
 
-  if (module.tables) {
+  if (module.tables.items.length > 0) {
     sections.tables = getTableSectionSize(module.tables);
-    totalSize += sections.tables;
+    totalSize += 1 + getLEB128USize(sections.tables) + sections.tables;
   }
 
-  if (module.memories) {
+  if (module.memories.items.length > 0) {
     sections.memories = getMemorySectionSize(module.memories);
-    totalSize += sections.memories;
+    totalSize += 1 + getLEB128USize(sections.memories) + sections.memories;
   }
 
-  if (module.globals) {
+  if (module.globals.items.length > 0) {
     sections.globals = getGlobalSectionSize(module.globals);
-    totalSize += sections.globals;
+    totalSize += 1 + getLEB128USize(sections.globals) + sections.globals;
   }
 
-  if (module.exports) {
+  if (module.exports.items.length > 0) {
     sections.exports = getExportSectionSize(module.exports);
-    totalSize += sections.exports;
+    totalSize += 1 + getLEB128USize(sections.exports) + sections.exports;
   }
 
   if (module.start) {
     sections.start = getStartSectionSize(module.start);
-    totalSize += sections.start;
+    totalSize += 1 + getLEB128USize(sections.start) + sections.start;
   }
 
-  if (module.elements) {
+  if (module.elements.items.length > 0) {
     sections.elements = getElementSectionSize(module.elements);
-    totalSize += sections.elements;
+    totalSize += 1 + getLEB128USize(sections.elements) + sections.elements;
   }
 
-  if (module.code) {
+  if (module.code.items.length > 0) {
     sections.code = getCodeSectionSize(module.code);
-    totalSize += sections.code;
+    totalSize += 1 + getLEB128USize(sections.code) + sections.code;
   }
 
-  if (module.data) {
+  if (module.data.items.length > 0) {
     sections.data = getDataSectionSize(module.data);
-    totalSize += sections.data;
+    totalSize += 1 + getLEB128USize(sections.data) + sections.data;
   }
 
   if (module.dataCount) {
     sections.dataCount = getDataCountSection(module.dataCount);
-    totalSize += sections.dataCount;
+    totalSize += 1 + getLEB128USize(sections.dataCount) + sections.dataCount;
   }
 
   if (module.customSections.length > 0) {

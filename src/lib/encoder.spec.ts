@@ -6,7 +6,11 @@ import {
   encodeModule,
   encodeTypeSection,
 } from './encoder';
-import { getImportSectionSize, getTypeSectionSize } from './size';
+import {
+  getImportSectionSize,
+  getModuleSize,
+  getTypeSectionSize,
+} from './size';
 import {
   ExternalKind,
   ImportSection,
@@ -15,6 +19,7 @@ import {
   RefType,
   TypeSection,
 } from './wasm';
+import { getLEB128USize } from './leb128';
 
 const emptyModule = createModule();
 
@@ -48,7 +53,7 @@ test('encodeModule', (t) => {
                 [InstrType.I32Const, 2],
                 [InstrType.I32Mul],
               ],
-              length: 5,
+              length: 6,
             },
           },
         ],
@@ -79,7 +84,7 @@ test('encodeModule', (t) => {
       8,
       1,
       0,
-      10,
+      0x0a,
       11,
       1,
       9,
@@ -144,11 +149,13 @@ function testTypeSection(
   expected: Uint8Array
 ) {
   const typeSectionSize = getTypeSectionSize(typeSection);
+  const typeSectionSizeWithPreamble =
+    1 + getLEB128USize(typeSectionSize) + typeSectionSize;
 
   const encoder = {
-    buffer: new Uint8Array(typeSectionSize),
+    buffer: new Uint8Array(typeSectionSizeWithPreamble),
     sizeInfo: {
-      total: typeSectionSize,
+      total: typeSectionSizeWithPreamble,
       sections: { types: typeSectionSize },
     },
     index: 0,
@@ -204,22 +211,24 @@ test('encodeTypeSection', (t) => {
 
 function testImportSection(
   t: ExecutionContext<unknown>,
-  typeSection: ImportSection,
+  importSection: ImportSection,
   expected: Uint8Array
 ) {
-  const importSectionSize = getImportSectionSize(typeSection);
+  const importSectionSize = getImportSectionSize(importSection);
+  const importSectionSizeWithPreamble =
+    1 + getLEB128USize(importSectionSize) + importSectionSize;
 
   const encoder = {
-    buffer: new Uint8Array(importSectionSize),
+    buffer: new Uint8Array(importSectionSizeWithPreamble),
     sizeInfo: {
-      total: importSectionSize,
+      total: importSectionSizeWithPreamble,
       sections: { imports: importSectionSize },
     },
     index: 0,
     textEncoder: new TextEncoder(),
   };
 
-  encodeImportSection(encoder, typeSection);
+  encodeImportSection(encoder, importSection);
 
   t.deepEqual(encoder.buffer, expected);
 }

@@ -5,6 +5,7 @@ import leb from 'leb128';
 
 import {
   getLEB128USize,
+  getLEB128SSize,
   fromLEB128U,
   fromLEB128S,
   toLEB128S,
@@ -27,7 +28,6 @@ test('toLEB128U vs leb128 package', (t) => {
     const libBuffer = leb.unsigned.encode(n.toString());
     const myBuffer = new Uint8Array(getLEB128USize(n));
     toLEB128U(n, myBuffer, 0);
-
     t.is(libBuffer.length, myBuffer.length);
 
     for (let i = 0; i < libBuffer.length; i++) {
@@ -48,7 +48,7 @@ test('toLEB128S vs leb128 package', (t) => {
     }
 
     const libBuffer = leb.signed.encode(n.toString());
-    const myBuffer = new Uint8Array(getLEB128USize(n));
+    const myBuffer = new Uint8Array(getLEB128SSize(n));
     toLEB128S(n, myBuffer, 0);
 
     t.is(libBuffer.length, myBuffer.length);
