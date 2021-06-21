@@ -1,7 +1,8 @@
 import test from 'ava';
+
 import { createModule } from './builder';
-import { InstrType, NumType, RefType } from './wasm';
 import { decodeModule } from './decoder';
+import { InstrType, NumType, RefType } from './wasm';
 
 const emptyModule = createModule();
 

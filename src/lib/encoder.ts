@@ -32,7 +32,6 @@ import {
   TypeSection,
 } from './wasm';
 import { getFunctionBodySize, getModuleSize, SizeInfo } from './size';
-import { buf2hex } from './utils';
 
 interface Encoder {
   buffer: Uint8Array;
@@ -400,7 +399,6 @@ function encodeByteArray(encoder: Encoder, bytes: Uint8Array) {
 
 function encodeImportEntry(encoder: Encoder, importEntry: Import) {
   const textEncoder = new TextEncoder();
-  const startIndex = encoder.index;
   const moduleBytes = textEncoder.encode(importEntry.module);
   encodeLEB128U(encoder, moduleBytes.length);
   encodeByteArray(encoder, moduleBytes);

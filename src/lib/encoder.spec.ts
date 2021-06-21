@@ -6,11 +6,7 @@ import {
   encodeModule,
   encodeTypeSection,
 } from './encoder';
-import {
-  getImportSectionSize,
-  getModuleSize,
-  getTypeSectionSize,
-} from './size';
+import { getImportSectionSize, getTypeSectionSize } from './size';
 import {
   ExternalKind,
   ImportSection,

@@ -1,6 +1,5 @@
 import { createModule } from './builder';
 import { fromLEB128S, fromLEB128U } from './leb128';
-import { buf2hex } from './utils';
 import {
   BlockType,
   Code,
@@ -245,7 +244,7 @@ function decodeVector<T>(
 function decodeByteVector(decoder: Decoder): Uint8Array {
   const length = decodeLEB128U(decoder);
   const bytes = decoder.bytes.slice(decoder.index, decoder.index + length);
-  decoder.index = decoder.index + length + 1;
+  decoder.index = decoder.index + length;
 
   return bytes;
 }
@@ -273,7 +272,11 @@ function decodeData(decoder: Decoder): Data {
       return { id: 0x02, memoryIndex, offsetExpr, bytes };
     }
     default: {
-      throw new Error(`Unexpected id for data segment: ${id}`);
+      throw new Error(
+        `At ${(decoder.index - 1).toString(
+          16
+        )} unexpected id for data segment: ${id.toString(16)}`
+      );
     }
   }
 }
