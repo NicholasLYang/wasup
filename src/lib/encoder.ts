@@ -30,8 +30,9 @@ import {
   TableSection,
   TableType,
   TypeSection,
+  ValueBlockType,
 } from './wasm';
-import { getFunctionBodySize, getModuleSize, SizeInfo } from './size';
+import { getCodeSize, getModuleSize, SizeInfo } from './size';
 
 interface Encoder {
   buffer: Uint8Array;
@@ -324,7 +325,8 @@ function encodeData(encoder: Encoder, data: Data) {
 }
 
 function encodeCode(encoder: Encoder, code: Code) {
-  const codeBodySize = getFunctionBodySize(code);
+  const codeBodySize = getCodeSize(code);
+
   encodeLEB128U(encoder, codeBodySize);
   encodeVector(encoder, [...code.locals], (encoder, [varType, count]) => {
     encodeLEB128U(encoder, count);
@@ -427,7 +429,6 @@ function encodeImportEntry(encoder: Encoder, importEntry: Import) {
 function encodeGlobal(encoder: Encoder, global: Global) {
   encodeGlobalType(encoder, global.type);
   encodeExpr(encoder, global.initExpr);
-  encodeByte(encoder, 0x0b);
 }
 
 function encodeGlobalType(encoder: Encoder, globalType: GlobalType) {
@@ -474,7 +475,7 @@ function encodeVector<T>(
 
 function encodeBlockType(encoder: Encoder, blockType: BlockType) {
   if ('valueType' in blockType) {
-    encodeByte(encoder, blockType.valueType);
+    encodeLEB128S(encoder, blockType.valueType);
   } else if ('typeIndex' in blockType) {
     encodeLEB128S(encoder, blockType.typeIndex);
   }
@@ -541,6 +542,16 @@ function encodeInstruction(encoder: Encoder, instr: Instruction) {
         }
         case OtherInstrType.MemoryFill: {
           encodeByte(encoder, 0x00);
+          break;
+        }
+        case OtherInstrType.I32TruncSatF32S:
+        case OtherInstrType.I32TruncSatF32U:
+        case OtherInstrType.I32TruncSatF64S:
+        case OtherInstrType.I32TruncSatF64U:
+        case OtherInstrType.I64TruncSatF32S:
+        case OtherInstrType.I64TruncSatF32U:
+        case OtherInstrType.I64TruncSatF64S:
+        case OtherInstrType.I64TruncSatF64U: {
           break;
         }
         default: {

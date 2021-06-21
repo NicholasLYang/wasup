@@ -1,4 +1,5 @@
 import {
+  BlockType,
   Code,
   CodeSection,
   CustomSection,
@@ -10,6 +11,7 @@ import {
   ElementSection,
   Export,
   ExportSection,
+  Expr,
   ExternalKind,
   FunctionSection,
   FuncType,
@@ -17,8 +19,11 @@ import {
   GlobalSection,
   Import,
   ImportSection,
+  InstrType,
+  Instruction,
   MemorySection,
   Module,
+  OtherInstrType,
   RefType,
   ResizableLimits,
   StartSection,
@@ -26,7 +31,7 @@ import {
   TableType,
   TypeSection,
 } from './wasm';
-import { getLEB128USize } from './leb128';
+import { getLEB128SSize, getLEB128USize } from './leb128';
 
 export function getFuncTypeSize(funcType: FuncType): number {
   return (
@@ -149,16 +154,168 @@ function getElementSize(element: Element) {
   return elementSize;
 }
 
+function getBlockTypeSize(blockType: BlockType) {
+  if ('valueType' in blockType) {
+    return 1;
+  }
+
+  if ('typeIndex' in blockType) {
+    return getLEB128SSize(blockType.typeIndex);
+  }
+
+  throw new Error('INTERNAL: Block type must be either valueType or typeIndex');
+}
+
+function getInstructionSize(instr: Instruction) {
+  switch (instr[0]) {
+    case InstrType.Block:
+    case InstrType.Loop: {
+      return 1 + getBlockTypeSize(instr[1]) + getExprSize(instr[2]);
+    }
+    case InstrType.If: {
+      if (instr.length == 3) {
+        return 1 + getBlockTypeSize(instr[1]) + getExprSize(instr[2]);
+      } else {
+        return (
+          1 +
+          getBlockTypeSize(instr[1]) +
+          getExprSize(instr[2]) +
+          getExprSize(instr[3])
+        );
+      }
+    }
+    case InstrType.Br:
+    case InstrType.BrIf:
+    case InstrType.Call:
+    case InstrType.RefFunc:
+    case InstrType.LocalGet:
+    case InstrType.LocalSet:
+    case InstrType.LocalTee:
+    case InstrType.GlobalGet:
+    case InstrType.GlobalSet:
+    case InstrType.TableGet:
+    case InstrType.TableSet: {
+      return 1 + getLEB128USize(instr[1]);
+    }
+    case InstrType.I32Load:
+    case InstrType.I64Load:
+    case InstrType.F32Load:
+    case InstrType.F64Load:
+    case InstrType.I32Load8S:
+    case InstrType.I32Load8U:
+    case InstrType.I32Load16S:
+    case InstrType.I32Load16U:
+    case InstrType.I64Load8S:
+    case InstrType.I64Load8U:
+    case InstrType.I64Load16S:
+    case InstrType.I64Load16U:
+    case InstrType.I64Load32S:
+    case InstrType.I64Load32U:
+    case InstrType.I32Store:
+    case InstrType.I64Store:
+    case InstrType.F32Store:
+    case InstrType.F64Store:
+    case InstrType.I32Store8:
+    case InstrType.I32Store16:
+    case InstrType.I64Store8:
+    case InstrType.I64Store16:
+    case InstrType.I64Store32:
+    case InstrType.CallIndirect: {
+      return 1 + getLEB128USize(instr[1]) + getLEB128USize(instr[2]);
+    }
+    case InstrType.Other: {
+      const instrSize = 1 + getLEB128USize(instr[1]);
+      switch (instr[1]) {
+        case OtherInstrType.TableInit:
+        case OtherInstrType.TableCopy: {
+          return (
+            instrSize + getLEB128USize(instr[2]) + getLEB128USize(instr[3])
+          );
+        }
+        case OtherInstrType.ElemDrop:
+        case OtherInstrType.TableGrow:
+        case OtherInstrType.TableSize:
+        case OtherInstrType.TableFill:
+        case OtherInstrType.DataDrop: {
+          return instrSize + getLEB128USize(instr[2]);
+        }
+        case OtherInstrType.MemoryCopy: {
+          return instrSize + 2;
+        }
+        case OtherInstrType.MemoryFill: {
+          return instrSize + 1;
+        }
+        case OtherInstrType.I32TruncSatF32S:
+        case OtherInstrType.I32TruncSatF32U:
+        case OtherInstrType.I32TruncSatF64S:
+        case OtherInstrType.I32TruncSatF64U:
+        case OtherInstrType.I64TruncSatF32S:
+        case OtherInstrType.I64TruncSatF32U:
+        case OtherInstrType.I64TruncSatF64S:
+        case OtherInstrType.I64TruncSatF64U: {
+          return instrSize;
+        }
+        default: {
+          throw new Error(`Unexpected instruction: ${instr[1].toString(16)}`);
+        }
+      }
+    }
+    case InstrType.BrTable: {
+      return (
+        1 + getVecSize(instr[1], getLEB128USize) + getLEB128USize(instr[2])
+      );
+    }
+    case InstrType.RefNull: {
+      return 2;
+    }
+    case InstrType.SelectT: {
+      return 1 + instr[1].length;
+    }
+    case InstrType.MemorySize:
+    case InstrType.MemoryGrow: {
+      return 2;
+    }
+    case InstrType.I32Const:
+    case InstrType.I64Const: {
+      return 1 + getLEB128SSize(instr[1]);
+    }
+    case InstrType.F32Const: {
+      return 5;
+    }
+    case InstrType.F64Const: {
+      return 9;
+    }
+    default: {
+      if (instr.length === 1) {
+        return 1;
+      }
+    }
+  }
+
+  throw new Error(`INTERNAL: Should be exhaustive match`);
+}
+
+function getExprSize(expr: Expr) {
+  // We start with 1 for end byte
+  let totalSize = 1;
+
+  for (const instr of expr.instructions) {
+    totalSize += getInstructionSize(instr);
+  }
+
+  return totalSize;
+}
+
 // Get the function body size WITHOUT the size prefix.
 // Code bodies in WASM have a size prefix that gives the
 // size of the body in bytes. For figuring out the total
 // size of the module, we have to include this. For figuring
 // out the size itself to encode, we don't want to include it
-export function getFunctionBodySize(body: Code): number {
+export function getCodeSize(body: Code): number {
   const localsSize = getVecSize([...body.locals.entries()], ([_, count]) => {
     return 1 + getLEB128USize(count);
   });
-  return body.code.length + localsSize;
+  return getExprSize(body.code) + localsSize;
 }
 
 function getDataSize(data: Data) {
@@ -302,7 +459,7 @@ export function getElementSectionSize(elementSection: ElementSection) {
  */
 export function getCodeSectionSize(codeSection: CodeSection) {
   return getVecSize(codeSection.items, (item) => {
-    const bodySize = getFunctionBodySize(item);
+    const bodySize = getCodeSize(item);
     return getLEB128USize(bodySize) + bodySize;
   });
 }
