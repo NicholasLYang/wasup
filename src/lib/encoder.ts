@@ -30,7 +30,6 @@ import {
   TableSection,
   TableType,
   TypeSection,
-  ValueBlockType,
 } from './wasm';
 import { getCodeSize, getModuleSize, SizeInfo } from './size';
 
@@ -102,7 +101,9 @@ function encodeFloat64(encoder: Encoder, float: number) {
 
 function encodeByte(encoder: Encoder, byte: number) {
   if (encoder.index >= encoder.buffer.length) {
-    throw new Error(`Internal: Buffer is not big enough`);
+    throw new Error(
+      `Internal: Buffer is not big enough, tried to encode ${byte} ${encoder.buffer}`
+    );
   }
   encoder.buffer[encoder.index] = byte;
   encoder.index += 1;
@@ -456,7 +457,7 @@ function encodeResizableLimits(
 }
 
 function encodeExpr(encoder: Encoder, expr: Expr) {
-  for (const instr of expr.instructions) {
+  for (const instr of expr) {
     encodeInstruction(encoder, instr);
   }
   encodeByte(encoder, 0x0b);
@@ -481,7 +482,7 @@ function encodeBlockType(encoder: Encoder, blockType: BlockType) {
   }
 }
 
-function encodeInstruction(encoder: Encoder, instr: Instruction) {
+export function encodeInstruction(encoder: Encoder, instr: Instruction) {
   encodeByte(encoder, instr[0]);
   switch (instr[0]) {
     case InstrType.Block:
@@ -495,12 +496,13 @@ function encodeInstruction(encoder: Encoder, instr: Instruction) {
       // No else
       if (instr.length === 3) {
         encodeExpr(encoder, instr[2]);
-        encodeByte(encoder, 0x0b);
       } else if (instr.length === 4) {
-        encodeExpr(encoder, instr[2]);
+        // Can't call encodeExpr here cause it doesn't end in 0x05
+        for (const i of instr[2]) {
+          encodeInstruction(encoder, i);
+        }
         encodeByte(encoder, 0x05);
         encodeExpr(encoder, instr[3]);
-        encodeByte(encoder, 0x0b);
       }
       break;
     }

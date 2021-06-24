@@ -566,7 +566,6 @@ export type Instruction =
   | [InstrType.Loop, BlockType, Expr]
   | [InstrType.If, BlockType, Expr]
   | [InstrType.If, BlockType, Expr, Expr]
-  | [InstrType.Else]
   | [InstrType.Br, number]
   | [InstrType.BrIf, number]
   | [InstrType.BrTable, number[], number]
@@ -630,7 +629,4 @@ export type Instruction =
   | [InstrType.F32Const, number]
   | [InstrType.F64Const, number];
 
-export interface Expr {
-  instructions: Instruction[];
-  length: number;
-}
+export type Expr = Instruction[];

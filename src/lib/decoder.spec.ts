@@ -70,14 +70,11 @@ test('decodeModule', (t) => {
         items: [
           {
             locals: localVariables,
-            code: {
-              instructions: [
-                [InstrType.LocalGet, 0],
-                [InstrType.I32Const, 2],
-                [InstrType.I32Mul],
-              ],
-              length: 6,
-            },
+            code: [
+              [InstrType.LocalGet, 0],
+              [InstrType.I32Const, 2],
+              [InstrType.I32Mul],
+            ],
           },
         ],
       },

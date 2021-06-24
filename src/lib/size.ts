@@ -166,7 +166,7 @@ function getBlockTypeSize(blockType: BlockType) {
   throw new Error('INTERNAL: Block type must be either valueType or typeIndex');
 }
 
-function getInstructionSize(instr: Instruction) {
+export function getInstructionSize(instr: Instruction) {
   switch (instr[0]) {
     case InstrType.Block:
     case InstrType.Loop: {
@@ -184,9 +184,9 @@ function getInstructionSize(instr: Instruction) {
         );
       }
     }
+    case InstrType.Call:
     case InstrType.Br:
     case InstrType.BrIf:
-    case InstrType.Call:
     case InstrType.RefFunc:
     case InstrType.LocalGet:
     case InstrType.LocalSet:
@@ -239,6 +239,9 @@ function getInstructionSize(instr: Instruction) {
         case OtherInstrType.DataDrop: {
           return instrSize + getLEB128USize(instr[2]);
         }
+        case OtherInstrType.MemoryInit: {
+          return instrSize + getLEB128USize(instr[2]) + 1;
+        }
         case OtherInstrType.MemoryCopy: {
           return instrSize + 2;
         }
@@ -288,6 +291,8 @@ function getInstructionSize(instr: Instruction) {
     default: {
       if (instr.length === 1) {
         return 1;
+      } else {
+        throw new Error('Invalid instruction');
       }
     }
   }
@@ -299,7 +304,7 @@ function getExprSize(expr: Expr) {
   // We start with 1 for end byte
   let totalSize = 1;
 
-  for (const instr of expr.instructions) {
+  for (const instr of expr) {
     totalSize += getInstructionSize(instr);
   }
 

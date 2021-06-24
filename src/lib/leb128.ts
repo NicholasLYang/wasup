@@ -15,6 +15,9 @@ export function getHighestBit(n: number): number {
  * @returns Width of the encoded number in bytes.
  */
 export function getLEB128USize(n: number): number {
+  if (n === undefined) {
+    throw new Error(`n shouldn't be undefined`);
+  }
   if (n < 2 ** 7 - 1) {
     return 1;
   }
@@ -46,6 +49,7 @@ export function getLEB128SSize(n: number): number {
   if (n <= 2 ** 6 - 1 && n >= -(2 ** 6)) {
     return 1;
   }
+
   if (n <= 2 ** 13 - 1 && n >= -(2 ** 13)) {
     return 2;
   }
@@ -78,7 +82,7 @@ export function toLEB128U(
   startIndex: number
 ): number {
   if (!Number.isInteger(n)) {
-    throw new RangeError(`n must be an integer, instead is ${n}`);
+    throw new RangeErΩror(`n must be an integer, instead is ${n}`);
   }
 
   let i = startIndex;

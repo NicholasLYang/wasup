@@ -438,7 +438,7 @@ function decodeInstruction(decoder: Decoder): Instruction {
     }
     case InstrType.If: {
       const blockType = decodeBlockType(decoder);
-      const thenInstrs = [];
+      const thenBlock = [];
       const startIndex = decoder.index;
 
       // eslint-disable-next-line no-constant-condition
@@ -448,27 +448,18 @@ function decodeInstruction(decoder: Decoder): Instruction {
         if (byte === 0x0b) {
           decodeByte(decoder);
 
-          const thenBlock = {
-            instructions: thenInstrs,
-            length: decoder.index - startIndex,
-          };
-
           return [instr, blockType, thenBlock];
         }
 
         if (byte === 0x05) {
           decodeByte(decoder);
 
-          const thenBlock = {
-            instructions: thenInstrs,
-            length: decoder.index - startIndex,
-          };
           const elseBlock = decodeExpr(decoder);
 
           return [instr, blockType, thenBlock, elseBlock];
         }
 
-        thenInstrs.push(decodeInstruction(decoder));
+        thenBlock.push(decodeInstruction(decoder));
       }
     }
     case InstrType.Br:
@@ -619,7 +610,6 @@ function decodeInstruction(decoder: Decoder): Instruction {
 
 function decodeExpr(decoder: Decoder): Expr {
   const instructions = [];
-  const startIndex = decoder.index;
 
   while (true) {
     const byte = peekByte(decoder);
@@ -639,7 +629,7 @@ function decodeExpr(decoder: Decoder): Expr {
     instructions.push(decodeInstruction(decoder));
   }
 
-  return { instructions, length: decoder.index - startIndex };
+  return instructions;
 }
 
 function decodeImport(decoder: Decoder): Import {
