@@ -82,7 +82,7 @@ export function toLEB128U(
   startIndex: number
 ): number {
   if (!Number.isInteger(n)) {
-    throw new RangeErΩror(`n must be an integer, instead is ${n}`);
+    throw new RangeError(`n must be an integer, instead is ${n}`);
   }
 
   let i = startIndex;
