@@ -12,6 +12,7 @@ import {
   getInstructionSize,
   getTypeSectionSize,
 } from './size';
+import { getRandomIntArray, getRandomLEB128U } from './utils';
 import {
   ExternalKind,
   ImportSection,
@@ -1029,16 +1030,42 @@ test('encodeInstruction', (t) => {
     [InstrType.Br, 2],
     new Uint8Array([InstrType.Br, 2])
   );
+
   testEncodeInstruction(
     t,
     [InstrType.BrIf, 0],
     new Uint8Array([InstrType.BrIf, 0])
   );
-  // testEncodeInstruction(t, [InstrType.BrTable, number[], number]);
-  // testEncodeInstruction(t, [InstrType.Call, number]);
-  // testEncodeInstruction(t, [InstrType.CallIndirect, number, number]);
-  // testEncodeInstruction(t, [InstrType.RefNull, RefType]);
-  // testEncodeInstruction(t, [InstrType.RefFunc, number]);
+  const tableIds = [0, 5, 120, 34];
+  const endId = 25;
+
+  testEncodeInstruction(
+    t,
+    [InstrType.BrTable, tableIds, endId],
+    new Uint8Array([InstrType.BrTable, 4, 0, 5, 120, 34, 25])
+  );
+
+  testEncodeInstruction(
+    t,
+    [InstrType.Call, 1],
+    new Uint8Array([InstrType.Call, 1])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.CallIndirect, 0, 25],
+    new Uint8Array([InstrType.CallIndirect, 0, 25])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.RefNull, RefType.funcRef],
+    new Uint8Array([InstrType.RefNull, RefType.funcRef])
+  );
+
+  testEncodeInstruction(
+    t,
+    [InstrType.RefFunc, 128],
+    new Uint8Array([InstrType.RefFunc, 0x80, 0x01])
+  );
   // testEncodeInstruction(t, [InstrType.SelectT, ValueType[]]);
   // testEncodeInstruction(t, [InstrType.LocalGet, number]);
   // testEncodeInstruction(t, [InstrType.LocalSet, number]);
@@ -1047,14 +1074,46 @@ test('encodeInstruction', (t) => {
   // testEncodeInstruction(t, [InstrType.GlobalSet, number]);
   // testEncodeInstruction(t, [InstrType.TableGet, number]);
   // testEncodeInstruction(t, [InstrType.TableSet, number]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I32TruncSatF32S]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I32TruncSatF32U]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I32TruncSatF64S]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I32TruncSatF64U]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I64TruncSatF32S]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I64TruncSatF32U]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I64TruncSatF64S]);
-  // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.I64TruncSatF64U]);
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I32TruncSatF32S],
+    new Uint8Array([InstrType.Other, OtherInstrType.I32TruncSatF32S])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I32TruncSatF32U],
+    new Uint8Array([InstrType.Other, OtherInstrType.I32TruncSatF32U])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I32TruncSatF64S],
+    new Uint8Array([InstrType.Other, OtherInstrType.I32TruncSatF64S])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I32TruncSatF64U],
+    new Uint8Array([InstrType.Other, OtherInstrType.I32TruncSatF64U])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I64TruncSatF32S],
+    new Uint8Array([InstrType.Other, OtherInstrType.I64TruncSatF32S])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I64TruncSatF32U],
+    new Uint8Array([InstrType.Other, OtherInstrType.I64TruncSatF32U])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I64TruncSatF64S],
+    new Uint8Array([InstrType.Other, OtherInstrType.I64TruncSatF64S])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.Other, OtherInstrType.I64TruncSatF64U],
+    new Uint8Array([InstrType.Other, OtherInstrType.I64TruncSatF64U])
+  );
   // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.MemoryInit, number]);
   // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.DataDrop, number]);
   // testEncodeInstruction(t, [InstrType.Other, OtherInstrType.MemoryCopy]);
@@ -1088,8 +1147,17 @@ test('encodeInstruction', (t) => {
   // testEncodeInstruction(t, [InstrType.I64Store8, number, number]);
   // testEncodeInstruction(t, [InstrType.I64Store16, number, number]);
   // testEncodeInstruction(t, [InstrType.I64Store32, number, number]);
-  // testEncodeInstruction(t, [InstrType.MemorySize]);
-  // testEncodeInstruction(t, [InstrType.MemoryGrow]);
+
+  testEncodeInstruction(
+    t,
+    [InstrType.MemorySize],
+    new Uint8Array([InstrType.MemorySize, 0x00])
+  );
+  testEncodeInstruction(
+    t,
+    [InstrType.MemoryGrow],
+    new Uint8Array([InstrType.MemoryGrow, 0x00])
+  );
   testEncodeInstruction(
     t,
     [InstrType.I32Const, 64],

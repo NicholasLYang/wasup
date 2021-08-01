@@ -93,7 +93,7 @@ export function getTableTypeSize(tableType: TableType): number {
 
 function getGlobalSize(global: Global): number {
   // Global type is 2 bytes (bool + value type)
-  return 2 + global.initExpr.length;
+  return 2 + getExprSize(global.initExpr);
 }
 
 function getExportSize(exportEntry: Export) {
@@ -118,11 +118,11 @@ function getElementSize(element: Element) {
     initExprs,
   } = element as {
     tableIndex?: number;
-    offsetExpr?: Uint8Array;
+    offsetExpr?: Expr;
     functionIds?: number[];
     refType?: RefType;
     elementKind?: ElementKind;
-    initExprs?: Uint8Array[];
+    initExprs?: Expr[];
   };
 
   if (tableIndex) {
@@ -130,7 +130,7 @@ function getElementSize(element: Element) {
   }
 
   if (offsetExpr) {
-    elementSize += offsetExpr.length;
+    elementSize += getExprSize(offsetExpr);
   }
 
   if (functionIds) {
@@ -147,7 +147,7 @@ function getElementSize(element: Element) {
 
   if (initExprs) {
     for (const expr of initExprs) {
-      elementSize += expr.length;
+      elementSize += getExprSize(expr);
     }
   }
 
@@ -272,7 +272,7 @@ export function getInstructionSize(instr: Instruction) {
       return 2;
     }
     case InstrType.SelectT: {
-      return 1 + instr[1].length;
+      return 1 + getVecSize(instr[1], () => 1);
     }
     case InstrType.MemorySize:
     case InstrType.MemoryGrow: {

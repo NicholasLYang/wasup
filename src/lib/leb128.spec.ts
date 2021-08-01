@@ -11,10 +11,7 @@ import {
   toLEB128S,
   toLEB128U,
 } from './leb128';
-
-function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
-}
+import {getRandomInt} from "./utils";
 
 test('toLEB128U vs leb128 package', (t) => {
   const randomInts = new Set();
