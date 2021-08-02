@@ -1,19 +1,21 @@
 import test from 'ava';
-import {getLEB128USize} from "./leb128";
+import { getLEB128SSize, getLEB128USize } from './leb128';
 
 import {
   getFunctionSectionSize,
-  getImportSectionSize, getInstructionSize,
+  getImportSectionSize,
+  getInstructionSize,
   getTypeSectionSize,
 } from './size';
-import {getRandomInt} from "./utils";
+import { getRandomInt } from './utils';
 
 import {
   ExternalKind,
   InstrType,
   NumType,
   OtherInstrType,
-  RefType
+  RefType,
+  ValueBlockType,
 } from './wasm';
 
 test('getTypeSectionSize', (t) => {
@@ -59,6 +61,7 @@ test('getFunctionSectionSize', (t) => {
 
 test('getInstructionSize', (t) => {
   const n = getRandomInt(2_147_483_647);
+  const m = getRandomInt(2_147_483_647);
 
   t.is(getInstructionSize([InstrType.Unreachable]), 1);
   t.is(getInstructionSize([InstrType.Nop]), 1);
@@ -194,18 +197,42 @@ test('getInstructionSize', (t) => {
   t.is(getInstructionSize([InstrType.I64Extend8S]), 1);
   t.is(getInstructionSize([InstrType.I64Extend16S]), 1);
   t.is(getInstructionSize([InstrType.I64Extend32S]), 1);
-  // | [InstrType.Block, BlockType, Expr]
-  // | [InstrType.Loop, BlockType, Expr]
-  // | [InstrType.If, BlockType, Expr]
-  // | [InstrType.If, BlockType, Expr, Expr]
+  t.is(
+    getInstructionSize([
+      InstrType.Block,
+      { valueType: ValueBlockType.i32 },
+      [],
+    ]),
+    3
+  );
+  t.is(
+    getInstructionSize([InstrType.Loop, { typeIndex: n }, []]),
+    2 + getLEB128SSize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.If, { valueType: ValueBlockType.f64 }, []]),
+    3
+  );
+  t.is(
+    getInstructionSize([
+      InstrType.If,
+      { valueType: ValueBlockType.i32 },
+      [],
+      [],
+    ]),
+    4
+  );
   t.is(getInstructionSize([InstrType.Br, n]), 1 + getLEB128USize(n));
   t.is(getInstructionSize([InstrType.BrIf, n]), 1 + getLEB128USize(n));
-  // | [InstrType.BrTable, number[], number]
-  // | [InstrType.Call, number]
-  // | [InstrType.CallIndirect, number, number]
-  // | [InstrType.RefNull, RefType]
-  // | [InstrType.RefFunc, number]
-  // | [InstrType.SelectT, ValueType[]]
+  t.is(getInstructionSize([InstrType.BrTable, [], n]), 2 + getLEB128USize(n));
+  t.is(getInstructionSize([InstrType.Call, n]), 1 + getLEB128USize(n));
+  t.is(
+    getInstructionSize([InstrType.CallIndirect, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(getInstructionSize([InstrType.RefNull, RefType.funcRef]), 2);
+  t.is(getInstructionSize([InstrType.RefFunc, n]), 1 + getLEB128USize(n));
+  t.is(getInstructionSize([InstrType.SelectT, []]), 2);
   t.is(getInstructionSize([InstrType.LocalGet, n]), 1 + getLEB128USize(n));
   t.is(getInstructionSize([InstrType.LocalSet, n]), 1 + getLEB128USize(n));
   t.is(getInstructionSize([InstrType.LocalTee, n]), 1 + getLEB128USize(n));
@@ -213,51 +240,168 @@ test('getInstructionSize', (t) => {
   t.is(getInstructionSize([InstrType.GlobalSet, n]), 1 + getLEB128USize(n));
   t.is(getInstructionSize([InstrType.TableGet, n]), 1 + getLEB128USize(n));
   t.is(getInstructionSize([InstrType.TableSet, n]), 1 + getLEB128USize(n));
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF32S]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF32U]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF64S]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF64U]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF32S]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF32U]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF64S]), 2);
-  t.is(getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF64U]), 2);
-  // | [InstrType.Other, OtherInstrType.MemoryInit, number]
-  // | [InstrType.Other, OtherInstrType.DataDrop, number]
-  // | [InstrType.Other, OtherInstrType.MemoryCopy]
-  // | [InstrType.Other, OtherInstrType.MemoryFill]
-  // | [InstrType.Other, OtherInstrType.TableInit, number, number]
-  // | [InstrType.Other, OtherInstrType.ElemDrop, number]
-  // | [InstrType.Other, OtherInstrType.TableCopy, number, number]
-  // | [InstrType.Other, OtherInstrType.TableGrow, number]
-  // | [InstrType.Other, OtherInstrType.TableSize, number]
-  // | [InstrType.Other, OtherInstrType.TableFill, number]
-  // | [InstrType.I32Load, number, number]
-  // | [InstrType.I64Load, number, number]
-  // | [InstrType.F32Load, number, number]
-  // | [InstrType.F64Load, number, number]
-  // | [InstrType.I32Load8S, number, number]
-  // | [InstrType.I32Load8U, number, number]
-  // | [InstrType.I32Load16S, number, number]
-  // | [InstrType.I32Load16U, number, number]
-  // | [InstrType.I64Load8S, number, number]
-  // | [InstrType.I64Load8U, number, number]
-  // | [InstrType.I64Load16S, number, number]
-  // | [InstrType.I64Load16U, number, number]
-  // | [InstrType.I64Load32S, number, number]
-  // | [InstrType.I64Load32U, number, number]
-  // | [InstrType.I32Store, number, number]
-  // | [InstrType.I64Store, number, number]
-  // | [InstrType.F32Store, number, number]
-  // | [InstrType.F64Store, number, number]
-  // | [InstrType.I32Store8, number, number]
-  // | [InstrType.I32Store16, number, number]
-  // | [InstrType.I64Store8, number, number]
-  // | [InstrType.I64Store16, number, number]
-  // | [InstrType.I64Store32, number, number]
-  // | [InstrType.MemorySize]
-  // | [InstrType.MemoryGrow]
-  // | [InstrType.I32Const, number]
-  // | [InstrType.I64Const, number]
-  // | [InstrType.F32Const, number]
-  // | [InstrType.F64Const, number];
-})
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF32S]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF32U]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF64S]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I32TruncSatF64U]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF32S]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF32U]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF64S]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.I64TruncSatF64U]),
+    2
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.MemoryInit, n]),
+    3 + getLEB128USize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.DataDrop, n]),
+    2 + getLEB128USize(n)
+  );
+  t.is(getInstructionSize([InstrType.Other, OtherInstrType.MemoryCopy]), 4);
+  t.is(getInstructionSize([InstrType.Other, OtherInstrType.MemoryFill]), 3);
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.TableInit, n, m]),
+    2 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.ElemDrop, n]),
+    2 + getLEB128USize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.TableCopy, n, m]),
+    2 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.TableGrow, n]),
+    2 + getLEB128USize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.TableSize, n]),
+    2 + getLEB128USize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.Other, OtherInstrType.TableFill, n]),
+    2 + getLEB128USize(n)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Load, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.F32Load, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.F64Load, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Load8S, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Load8U, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Load16S, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Load16U, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load8S, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load8U, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load16S, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load16U, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load32S, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Load32U, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Store, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Store, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.F32Store, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.F64Store, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Store8, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I32Store16, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Store8, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Store16, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(
+    getInstructionSize([InstrType.I64Store32, n, m]),
+    1 + getLEB128USize(n) + getLEB128USize(m)
+  );
+  t.is(getInstructionSize([InstrType.MemorySize]), 2);
+  t.is(getInstructionSize([InstrType.MemoryGrow]), 2);
+  t.is(getInstructionSize([InstrType.I32Const, n]), 1 + getLEB128SSize(n));
+  t.is(getInstructionSize([InstrType.I64Const, n]), 1 + getLEB128SSize(n));
+  t.is(getInstructionSize([InstrType.F32Const, n]), 5);
+  t.is(getInstructionSize([InstrType.F64Const, n]), 9);
+});

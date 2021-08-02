@@ -1,4 +1,11 @@
-import { InstrType, Instruction, OtherInstrType, RefType } from './wasm';
+import {
+  BlockType,
+  InstrType,
+  Instruction,
+  OtherInstrType,
+  RefType,
+  ValueBlockType,
+} from './wasm';
 
 function printInstrType(instrType: InstrType) {
   const instrTypeToString = {
@@ -101,7 +108,7 @@ function printInstrType(instrType: InstrType) {
     [InstrType.I32RemS]: 'i32.rem_s',
     [InstrType.I32RemU]: 'i32.rem_u',
     [InstrType.I32And]: 'i32.and',
-    [InstrType.I32Or]: 'i32.oe',
+    [InstrType.I32Or]: 'i32.or',
     [InstrType.I32Xor]: 'i32.xor',
     [InstrType.I32Shl]: 'i32.shl',
     [InstrType.I32ShrS]: 'i32.shr_s',
@@ -202,6 +209,29 @@ function printHeapType(heapType: RefType): string {
   }
 }
 
+function printBlockType(blockType: BlockType): string {
+  if ('valueType' in blockType) {
+    switch (blockType.valueType) {
+      case ValueBlockType.i32:
+        return '(result i32)';
+      case ValueBlockType.i64:
+        return '(result i64)';
+      case ValueBlockType.f32:
+        return '(result f32)';
+      case ValueBlockType.f64:
+        return '(result f64)';
+      case ValueBlockType.AnyFunc:
+        return '(result funcref)';
+      case ValueBlockType.Empty:
+        return '';
+    }
+  } else if ('typeIndex' in blockType) {
+    return `(type ${blockType.typeIndex})`;
+  } else {
+    throw new Error(`Unreachable`);
+  }
+}
+
 export function printInstruction(instr: Instruction): string {
   const instrTypeString = printInstrType(instr[0]);
 
@@ -215,14 +245,18 @@ export function printInstruction(instr: Instruction): string {
       return instrTypeString;
     case InstrType.Block:
     case InstrType.Loop: {
-      return `(${instrTypeString} ${instr[1]} ${instr[2]
+      return `(${instrTypeString} ${printBlockType(instr[1])} ${instr[2]
         .map(printInstruction)
-        .join('\n')})`;
+        .join('\n')}end)`;
     }
     case InstrType.If: {
-      return `(${instrTypeString} ${instr[1]} ${instr[2]
-        .map(printInstruction)
-        .join('\n')} ${instr[3]?.map(printInstruction).join('\n')})`;
+      const out = `(${instrTypeString} ${printBlockType(
+        instr[1]
+      )} ${instr[2].map(printInstruction).join('\n')}`;
+      if (instr[3]) {
+        return `${out} else ${instr[3].map(printInstruction).join('\n')} end)`;
+      }
+      return `${out} end)`;
     }
     case InstrType.Br:
     case InstrType.BrIf:
