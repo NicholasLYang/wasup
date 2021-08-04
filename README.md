@@ -12,7 +12,7 @@ npm install wasup
 yarn add wasup
 ```
 
-wasup exposes three functions: `decodeModule`, `encodeModule`, and `createModule`.
+wasup exposes a few functions:
 
 `decodeModule` takes in a buffer containing WebAssembly binary code and decodes it 
 into a JavaScript object. This translation is as simple as possible. The module object
@@ -24,6 +24,10 @@ and encoding the module object. For the most part it assumes the module is valid
 of right now, wasup does not try to validate the module.
 
 `createModule` creates an empty module object for you to manipulate as you wish.
+
+`createFunction` creates a `Func` type which is a slightly higher level abstraction for functions.
+
+`addFunction` adds a `Func` to a module.
 
 ## Inspiration
 wasup owes a lot to [walrus](https://github.com/rustwasm/walrus), an excellent library
