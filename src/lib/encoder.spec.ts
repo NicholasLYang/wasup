@@ -12,7 +12,6 @@ import {
   getInstructionSize,
   getTypeSectionSize,
 } from './size';
-import { getRandomIntArray, getRandomLEB128U } from './utils';
 import {
   ExternalKind,
   ImportSection,

@@ -7,7 +7,7 @@ import {
   ValueBlockType,
 } from './wasm';
 
-function printInstrType(instrType: InstrType) {
+export function printInstrType(instrType: InstrType) {
   const instrTypeToString = {
     [InstrType.Unreachable]: 'unreachable',
     [InstrType.Nop]: 'nop',

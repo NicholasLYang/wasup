@@ -18,22 +18,22 @@ export function getLEB128USize(n: number): number {
   if (n === undefined) {
     throw new Error(`n shouldn't be undefined`);
   }
-  if (n < 2 ** 7 - 1) {
+  if (n <= 2 ** 7 - 1) {
     return 1;
   }
-  if (n < 2 ** 14 - 1) {
+  if (n <= 2 ** 14 - 1) {
     return 2;
   }
-  if (n < 2 ** 21 - 1) {
+  if (n <= 2 ** 21 - 1) {
     return 3;
   }
-  if (n < 2 ** 28 - 1) {
+  if (n <= 2 ** 28 - 1) {
     return 4;
   }
-  if (n < 2 ** 35 - 1) {
+  if (n <= 2 ** 35 - 1) {
     return 5;
   }
-  if (n < 2 ** 42 - 1) {
+  if (n <= 2 ** 42 - 1) {
     return 6;
   }
   throw new RangeError(`n is too large for varuint32: ${n}`);

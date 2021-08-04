@@ -172,7 +172,7 @@ export type Element =
       initExprs: Expr[];
     };
 
-export type LocalVariables = Map<ValueType, number>;
+export type LocalVariables = { count: number; type: ValueType }[];
 
 export interface Code {
   locals: LocalVariables;

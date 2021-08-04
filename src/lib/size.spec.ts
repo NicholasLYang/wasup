@@ -8,7 +8,6 @@ import {
   getTypeSectionSize,
 } from './size';
 import { getRandomInt } from './utils';
-
 import {
   ExternalKind,
   InstrType,

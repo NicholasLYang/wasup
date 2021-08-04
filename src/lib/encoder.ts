@@ -1,4 +1,4 @@
-import { toLEB128S, toLEB128U } from './leb128';
+import { getLEB128USize, toLEB128S, toLEB128U } from './leb128';
 import {
   BlockType,
   Code,
@@ -159,6 +159,18 @@ export function encodeModule(module: Module): Uint8Array {
 
   if (module.dataCount) {
     encodeDataCountSection(encoder, module.dataCount);
+  }
+  for (const customSection of module.customSections) {
+    encodeByte(encoder, 0);
+    const nameBytes = encoder.textEncoder.encode(customSection.name);
+    const length =
+      getLEB128USize(nameBytes.length) +
+      nameBytes.length +
+      customSection.contents.length;
+    encodeLEB128U(encoder, length);
+    encodeLEB128U(encoder, nameBytes.length);
+    encodeByteArray(encoder, nameBytes);
+    encodeByteArray(encoder, customSection.contents);
   }
 
   return encoder.buffer;
@@ -329,9 +341,9 @@ function encodeCode(encoder: Encoder, code: Code) {
   const codeBodySize = getCodeSize(code);
 
   encodeLEB128U(encoder, codeBodySize);
-  encodeVector(encoder, [...code.locals], (encoder, [varType, count]) => {
+  encodeVector(encoder, code.locals, (encoder, { type, count }) => {
     encodeLEB128U(encoder, count);
-    encodeByte(encoder, varType);
+    encodeByte(encoder, type);
   });
 
   encodeExpr(encoder, code.code);
@@ -379,10 +391,14 @@ function encodeElement(encoder: Encoder, element: Element) {
   }
 }
 
+function encodeString(encoder: Encoder, s: string) {
+  const bytes = encoder.textEncoder.encode(s);
+  encodeLEB128U(encoder, bytes.length);
+  encodeByteArray(encoder, bytes);
+}
+
 function encodeExport(encoder: Encoder, exportEntry: Export) {
-  const nameBytes = encoder.textEncoder.encode(exportEntry.name);
-  encodeLEB128U(encoder, nameBytes.length);
-  encodeByteArray(encoder, nameBytes);
+  encodeString(encoder, exportEntry.name);
   encodeByte(encoder, exportEntry.kind);
   encodeLEB128U(encoder, exportEntry.index);
 }
@@ -401,14 +417,8 @@ function encodeByteArray(encoder: Encoder, bytes: Uint8Array) {
 }
 
 function encodeImportEntry(encoder: Encoder, importEntry: Import) {
-  const textEncoder = new TextEncoder();
-  const moduleBytes = textEncoder.encode(importEntry.module);
-  encodeLEB128U(encoder, moduleBytes.length);
-  encodeByteArray(encoder, moduleBytes);
-
-  const fieldBytes = textEncoder.encode(importEntry.field);
-  encodeLEB128U(encoder, fieldBytes.length);
-  encodeByteArray(encoder, fieldBytes);
+  encodeString(encoder, importEntry.module);
+  encodeString(encoder, importEntry.field);
   encodeByte(encoder, importEntry.description.kind);
 
   switch (importEntry.description.kind) {

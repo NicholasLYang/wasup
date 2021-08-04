@@ -1,3 +1,4 @@
+import { getLEB128SSize, getLEB128USize } from './leb128';
 import {
   BlockType,
   Code,
@@ -31,7 +32,6 @@ import {
   TableType,
   TypeSection,
 } from './wasm';
-import { getLEB128SSize, getLEB128USize } from './leb128';
 
 export function getFuncTypeSize(funcType: FuncType): number {
   return (
@@ -317,9 +317,10 @@ function getExprSize(expr: Expr) {
 // size of the module, we have to include this. For figuring
 // out the size itself to encode, we don't want to include it
 export function getCodeSize(body: Code): number {
-  const localsSize = getVecSize([...body.locals.entries()], ([_, count]) => {
+  const localsSize = getVecSize(body.locals, ({ count }) => {
     return 1 + getLEB128USize(count);
   });
+
   return getExprSize(body.code) + localsSize;
 }
 
@@ -328,7 +329,7 @@ function getDataSize(data: Data) {
     case 0x00:
       return (
         1 +
-        data.offsetExpr.length +
+        getExprSize(data.offsetExpr) +
         getLEB128USize(data.bytes.length) +
         data.bytes.length
       );
@@ -338,7 +339,7 @@ function getDataSize(data: Data) {
       return (
         1 +
         data.memoryIndex +
-        data.offsetExpr.length +
+        getExprSize(data.offsetExpr) +
         getLEB128USize(data.bytes.length) +
         data.bytes.length
       );

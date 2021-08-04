@@ -30,8 +30,7 @@ interface Decoder {
   bytes: Uint8Array;
   view: DataView;
   decodedSections: Set<number>;
-  instructionTypes: Set<InstrType>;
-  newInstrTypes: Set<InstrType>;
+  funcIndex: number;
 }
 
 const SECTION_NAMES = [
@@ -56,8 +55,7 @@ export function decodeModule(encodedModule: Uint8Array) {
     bytes: encodedModule,
     view: new DataView(encodedModule.buffer),
     decodedSections: new Set(),
-    instructionTypes: new Set(),
-    newInstrTypes: new Set(),
+    funcIndex: 0,
   };
   const module = createModule();
   decodeModulePreamble(decoder);
@@ -288,30 +286,23 @@ function decodeData(decoder: Decoder): Data {
 function decodeCode(decoder: Decoder): Code {
   const codeSize = decodeLEB128U(decoder);
   const startIndex = decoder.index;
-
-  const localsArray = decodeVector(decoder, (decoder) => {
+  const locals = decodeVector(decoder, (decoder) => {
     const count = decodeLEB128U(decoder);
     const type = decodeValueType(decoder);
     return { count, type };
   });
 
-  const locals = new Map();
-
-  for (const { count, type } of localsArray) {
-    locals.set(type, count);
-  }
-
   const code = decodeExpr(decoder);
-
   if (decoder.index - startIndex !== codeSize) {
-    console.log([...decoder.bytes.subarray(startIndex, decoder.index)]);
-    console.log([...decoder.bytes.subarray(decoder.index - 10, decoder.index)]);
     throw new Error(
-      `Code body is not ${codeSize} bytes long as expected, instead is ${
+      `Code body #${
+        decoder.funcIndex
+      } is not ${codeSize} bytes long as expected, instead is ${
         decoder.index - startIndex
       } bytes`
     );
   }
+  decoder.funcIndex += 1;
 
   return { locals, code };
 }
@@ -433,11 +424,6 @@ function decodeGlobal(decoder: Decoder): Global {
 function decodeInstruction(decoder: Decoder): Instruction {
   const instr = decodeByte(decoder);
 
-  if (!decoder.instructionTypes.has(instr)) {
-    decoder.newInstrTypes.add(instr);
-  }
-  decoder.instructionTypes.add(instr);
-
   switch (instr) {
     case InstrType.Unreachable:
     case InstrType.Nop:
@@ -456,7 +442,6 @@ function decodeInstruction(decoder: Decoder): Instruction {
     case InstrType.If: {
       const blockType = decodeBlockType(decoder);
       const thenBlock = [];
-      const startIndex = decoder.index;
 
       // eslint-disable-next-line no-constant-condition
       while (true) {
