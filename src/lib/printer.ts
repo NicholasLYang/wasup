@@ -362,5 +362,6 @@ export function printInstruction(instr: Instruction): string {
       if (instr[0] >= InstrType.I32EqZ && instr[0] <= InstrType.I64Extend32S) {
         return instrTypeString;
       }
+      throw new Error(`Unreachable`);
   }
 }

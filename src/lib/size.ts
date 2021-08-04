@@ -258,9 +258,6 @@ export function getInstructionSize(instr: Instruction) {
         case OtherInstrType.I64TruncSatF64U: {
           return instrSize;
         }
-        default: {
-          throw new Error(`Unexpected instruction: ${instr[1].toString(16)}`);
-        }
       }
     }
     case InstrType.BrTable: {

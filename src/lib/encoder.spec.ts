@@ -28,8 +28,7 @@ import { getLEB128USize } from './leb128';
 const emptyModule = createModule();
 
 test('encodeModule', (t) => {
-  const localVariables = new Map();
-  localVariables.set(NumType.i32, 1);
+  const localVariables = [{ type: NumType.i32, count: 1 }];
 
   t.deepEqual(
     encodeModule({

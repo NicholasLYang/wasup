@@ -45,7 +45,7 @@ export function addFunction(module: Module, func: Func): Module {
 
   module.types.items.push(func.type);
   module.functions.items.push(module.types.items.length - 1);
-  module.code.items.push({ locals: func.locals ?? new Map(), code: func.code });
+  module.code.items.push({ locals: func.locals ?? [], code: func.code });
 
   if (func.name) {
     module.exports = module.exports ?? { id: 7, exports: [] };

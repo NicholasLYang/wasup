@@ -11,7 +11,7 @@ import {
   toLEB128S,
   toLEB128U,
 } from './leb128';
-import {getRandomInt} from "./utils";
+import { getRandomInt } from './utils';
 
 test('toLEB128U vs leb128 package', (t) => {
   const randomInts = new Set();
@@ -68,7 +68,7 @@ test('fromLEB128U vs leb128 package', (t) => {
     }
 
     const libBuffer = leb.unsigned.encode(n.toString());
-    const { index: _, value } = fromLEB128U(libBuffer, 0);
+    const { value } = fromLEB128U(libBuffer, 0);
     t.is(value, n);
 
     randomInts.add(n);
@@ -85,7 +85,7 @@ test('fromLEB128S vs leb128 package', (t) => {
     }
 
     const libBuffer = leb.signed.encode(n.toString());
-    const { index: _, value } = fromLEB128S(libBuffer, 0);
+    const { value } = fromLEB128S(libBuffer, 0);
     t.is(value, n);
 
     randomInts.add(n);
