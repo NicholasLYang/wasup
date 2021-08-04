@@ -259,6 +259,7 @@ export function getInstructionSize(instr: Instruction) {
           return instrSize;
         }
       }
+      break;
     }
     case InstrType.BrTable: {
       return (
@@ -513,11 +514,26 @@ export function getCustomSectionsSize(customSections: CustomSection[]) {
 
 export interface SizeInfo {
   total: number;
-  sections: { [Property in keyof Module]?: number };
+  sections: { [Property in keyof Module]: number };
 }
 
 export function getModuleSize(module: Module): SizeInfo {
-  const sections: Partial<SizeInfo['sections']> = {};
+  const sections: SizeInfo['sections'] = {
+    types: 0,
+    imports: 0,
+    functions: 0,
+    tables: 0,
+    memories: 0,
+    globals: 0,
+    exports: 0,
+    start: 0,
+    elements: 0,
+    code: 0,
+    data: 0,
+    dataCount: 0,
+    customSections: 0,
+  };
+
   let totalSize = 8; // Magic number + version
 
   if (module.types.items.length > 0) {

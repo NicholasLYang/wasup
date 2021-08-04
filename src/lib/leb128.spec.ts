@@ -4,10 +4,10 @@ import test from 'ava';
 import leb from 'leb128';
 
 import {
-  getLEB128USize,
-  getLEB128SSize,
-  fromLEB128U,
   fromLEB128S,
+  fromLEB128U,
+  getLEB128SSize,
+  getLEB128USize,
   toLEB128S,
   toLEB128U,
 } from './leb128';

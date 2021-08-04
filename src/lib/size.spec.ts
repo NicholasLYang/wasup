@@ -1,6 +1,6 @@
 import test from 'ava';
-import { getLEB128SSize, getLEB128USize } from './leb128';
 
+import { getLEB128SSize, getLEB128USize } from './leb128';
 import {
   getFunctionSectionSize,
   getImportSectionSize,

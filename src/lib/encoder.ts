@@ -1,4 +1,5 @@
 import { getLEB128USize, toLEB128S, toLEB128U } from './leb128';
+import { getCodeSize, getModuleSize, SizeInfo } from './size';
 import {
   BlockType,
   Code,
@@ -31,7 +32,6 @@ import {
   TableType,
   TypeSection,
 } from './wasm';
-import { getCodeSize, getModuleSize, SizeInfo } from './size';
 
 interface Encoder {
   buffer: Uint8Array;
@@ -194,7 +194,7 @@ export function encodeTypeSection(encoder: Encoder, typeSection: TypeSection) {
   encodeSection(
     encoder,
     typeSection,
-    encoder.sizeInfo.sections.types!,
+    encoder.sizeInfo.sections.types,
     encodeFuncType
   );
 }
@@ -206,7 +206,7 @@ export function encodeImportSection(
   encodeSection(
     encoder,
     importSection,
-    encoder.sizeInfo.sections.imports!,
+    encoder.sizeInfo.sections.imports,
     encodeImportEntry
   );
 }
@@ -218,7 +218,7 @@ export function encodeFunctionSection(
   encodeSection(
     encoder,
     functionSection,
-    encoder.sizeInfo.sections.functions!,
+    encoder.sizeInfo.sections.functions,
     encodeLEB128U
   );
 }
@@ -230,7 +230,7 @@ export function encodeTableSection(
   encodeSection(
     encoder,
     tableSection,
-    encoder.sizeInfo.sections.tables!,
+    encoder.sizeInfo.sections.tables,
     encodeTableType
   );
 }
@@ -242,7 +242,7 @@ export function encodeMemorySection(
   return encodeSection(
     encoder,
     memorySection,
-    encoder.sizeInfo.sections.memories!,
+    encoder.sizeInfo.sections.memories,
     encodeResizableLimits
   );
 }
@@ -254,7 +254,7 @@ export function encodeGlobalSection(
   return encodeSection(
     encoder,
     globalSection,
-    encoder.sizeInfo.sections.globals!,
+    encoder.sizeInfo.sections.globals,
     encodeGlobal
   );
 }
@@ -266,7 +266,7 @@ export function encodeExportSection(
   return encodeSection(
     encoder,
     exportSection,
-    encoder.sizeInfo.sections.exports!,
+    encoder.sizeInfo.sections.exports,
     encodeExport
   );
 }
@@ -276,6 +276,7 @@ export function encodeStartSection(
   startSection: StartSection
 ) {
   encodeByte(encoder, startSection.id);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   encodeLEB128U(encoder, encoder.sizeInfo.sections.start!);
   encodeLEB128U(encoder, startSection.startFunction);
 }
@@ -287,7 +288,7 @@ export function encodeElementSection(
   return encodeSection(
     encoder,
     elementSection,
-    encoder.sizeInfo.sections.elements!,
+    encoder.sizeInfo.sections.elements,
     encodeElement
   );
 }
@@ -296,7 +297,7 @@ export function encodeCodeSection(encoder: Encoder, codeSection: CodeSection) {
   return encodeSection(
     encoder,
     codeSection,
-    encoder.sizeInfo.sections.code!,
+    encoder.sizeInfo.sections.code,
     encodeCode
   );
 }
@@ -305,7 +306,7 @@ export function encodeDataSection(encoder: Encoder, dataSection: DataSection) {
   return encodeSection(
     encoder,
     dataSection,
-    encoder.sizeInfo.sections.data!,
+    encoder.sizeInfo.sections.data,
     encodeData
   );
 }
@@ -315,6 +316,7 @@ export function encodeDataCountSection(
   dataCountSection: DataCountSection
 ) {
   encodeByte(encoder, dataCountSection.id);
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   encodeLEB128U(encoder, encoder.sizeInfo.sections.dataCount!);
   encodeLEB128U(encoder, dataCountSection.dataCount);
 }

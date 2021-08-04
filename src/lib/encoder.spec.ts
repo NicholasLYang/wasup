@@ -7,6 +7,7 @@ import {
   encodeModule,
   encodeTypeSection,
 } from './encoder';
+import { getLEB128USize } from './leb128';
 import {
   getImportSectionSize,
   getInstructionSize,
@@ -23,7 +24,6 @@ import {
   TypeSection,
   ValueBlockType,
 } from './wasm';
-import { getLEB128USize } from './leb128';
 
 const emptyModule = createModule();
 
@@ -156,7 +156,21 @@ function testTypeSection(
     buffer: new Uint8Array(typeSectionSizeWithPreamble),
     sizeInfo: {
       total: typeSectionSizeWithPreamble,
-      sections: { types: typeSectionSize },
+      sections: {
+        types: typeSectionSize,
+        imports: 0,
+        functions: 0,
+        tables: 0,
+        memories: 0,
+        globals: 0,
+        exports: 0,
+        start: 0,
+        elements: 0,
+        code: 0,
+        data: 0,
+        dataCount: 0,
+        customSections: 0,
+      },
     },
     index: 0,
     textEncoder: new TextEncoder(),
@@ -222,7 +236,21 @@ function testImportSection(
     buffer: new Uint8Array(importSectionSizeWithPreamble),
     sizeInfo: {
       total: importSectionSizeWithPreamble,
-      sections: { imports: importSectionSize },
+      sections: {
+        types: 0,
+        imports: importSectionSize,
+        functions: 0,
+        tables: 0,
+        memories: 0,
+        globals: 0,
+        exports: 0,
+        start: 0,
+        elements: 0,
+        code: 0,
+        data: 0,
+        dataCount: 0,
+        customSections: 0,
+      },
     },
     index: 0,
     textEncoder: new TextEncoder(),
@@ -298,7 +326,21 @@ function testEncodeInstruction(
     buffer: new Uint8Array(instrSize),
     sizeInfo: {
       total: instrSize,
-      sections: {},
+      sections: {
+        types: 0,
+        imports: 0,
+        functions: 0,
+        tables: 0,
+        memories: 0,
+        globals: 0,
+        exports: 0,
+        start: 0,
+        elements: 0,
+        code: 0,
+        data: 0,
+        dataCount: 0,
+        customSections: 0,
+      },
     },
     index: 0,
     textEncoder: new TextEncoder(),
