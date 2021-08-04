@@ -116,6 +116,7 @@ export function toLEB128S(
 
   let i = startIndex;
   n |= 0;
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const byte = n & 0x7f;
     n >>= 7;
@@ -147,6 +148,7 @@ export function fromLEB128U(
   let value = 0;
   let shiftOffset = 0;
   // Loop until the next to last 7 bytes
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     value = value | ((buffer[index] & 0x7f) << shiftOffset);
     shiftOffset += 7;
@@ -182,6 +184,7 @@ export function fromLEB128S(
   let value = 0;
   let shiftOffset = 0;
   // Loop until the next to last 7 bytes
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     value = value | ((buffer[index] & 0x7f) << shiftOffset);
     shiftOffset += 7;

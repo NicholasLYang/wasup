@@ -613,6 +613,7 @@ function decodeInstruction(decoder: Decoder): Instruction {
 function decodeExpr(decoder: Decoder): Expr {
   const instructions = [];
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const byte = peekByte(decoder);
 
