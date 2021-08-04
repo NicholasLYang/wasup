@@ -1,5 +1,4 @@
 export const VERSION = 0x1;
-export const MAGIC_NUMBER = 0x6d736100;
 
 type FuncId = number;
 
@@ -36,7 +35,10 @@ export interface FuncType {
   returnTypes: ValueType[];
 }
 
-// Most sections follow this format
+/**
+ * A little helper to make defining sections easier.
+ * Takes in an id and an array of items
+ */
 export interface Section<Id extends number, Item> {
   id: Id;
   items: Item[];
@@ -202,19 +204,68 @@ export interface Export {
   index: number;
 }
 
+/**
+ * A JavaScript representation of a WebAssembly module.
+ * Each field corresponds to a section in the WebAssembly module structure
+ */
 export interface Module {
+  /**
+   * Declares the module's function types. The types are for both imported and internally defined functions
+   */
   types: TypeSection;
+  /**
+   * Declares the module's imports. Modules can import functions, memories,
+   * tables, and globals
+   */
   imports: ImportSection;
+  /**
+   * Declares the module's functions. Deceptively simply, as this is just a
+   * list of indexes into the type section
+   */
   functions: FunctionSection;
+  /**
+   * Declares the module's tables. Tables are used to store references, such as function references for dynamic dispatch.
+   */
   tables: TableSection;
+  /**
+   * Declares the module's memories. WebAssembly has load and store operations which apply to the memory.
+   * As of right now, only one memory is allowed per module.
+   */
   memories: MemorySection;
+  /**
+   * Declares the module's global variables. Globals can be declared immutable or mutable.
+   */
   globals: GlobalSection;
+  /**
+   * Declares the module's exports. Like imports, modules can export functions, memories,
+   * tables and globals.
+   */
   exports: ExportSection;
+  /**
+   * Declares the module's start function. If it's declared, this function is
+   * run on module initialization
+   */
   start?: StartSection;
+  /**
+   * Declares the elements contained in the tables defined in the table section.
+   */
   elements: ElementSection;
+  /**
+   * Declares the functions' actual code along with any local variables used.
+   */
   code: CodeSection;
+  /**
+   * Declares the module's constant data. The data can then be loaded into memory,
+   * either at a pre-defined offset or at runtime.
+   */
   data: DataSection;
+  /**
+   * Declares the number of data segments. Used to make validation simpler
+   */
   dataCount?: DataCountSection;
+  /**
+   * Declares the module's custom sections. Often used to pass debug data.
+   */
   customSections: CustomSection[];
 }
 

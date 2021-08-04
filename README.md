@@ -7,7 +7,7 @@ It's zero dependency and entirely written in TypeScript.
 ## Getting Started
 
 Install with npm or yarn:
-```aidl
+```
 npm install wasup
 yarn add wasup
 ```
