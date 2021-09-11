@@ -1,0 +1,611 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>wasup</title>
+	<meta name="description" content="Documentation for wasup">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">wasup</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1>wasup</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<a href="#wasup" id="wasup" style="color: inherit; text-decoration: none;">
+					<h1>wasup</h1>
+				</a>
+				<p>wasup is a library for decoding and encoding the WebAssembly binary format.
+				It&#39;s zero dependency and entirely written in TypeScript.</p>
+				<a href="#getting-started" id="getting-started" style="color: inherit; text-decoration: none;">
+					<h2>Getting Started</h2>
+				</a>
+				<p>Install with npm or yarn:</p>
+				<pre><code>npm <span class="hljs-keyword">install </span>wasup
+yarn <span class="hljs-keyword">add </span>wasup
+</code></pre>
+				<p>wasup exposes a few functions:</p>
+				<p><code>decodeModule</code> takes in a buffer containing WebAssembly binary code and decodes it
+					into a JavaScript object. This translation is as simple as possible. The module object
+				contains fields for each section, along with an array of custom sections.</p>
+				<p><code>encodeModule</code> takes a module object and returns WebAssembly binary code in a buffer.
+					It does so by figuring out the necessary size for the binary code, allocating the buffer
+					and encoding the module object. For the most part it assumes the module is valid. As
+				of right now, wasup does not try to validate the module.</p>
+				<p><code>createModule</code> creates an empty module object for you to manipulate as you wish.</p>
+				<p><code>createFunction</code> creates a <code>Func</code> type which is a slightly higher level abstraction for functions.</p>
+				<p><code>addFunction</code> adds a <code>Func</code> to a module.</p>
+				<a href="#inspiration" id="inspiration" style="color: inherit; text-decoration: none;">
+					<h2>Inspiration</h2>
+				</a>
+				<p>wasup owes a lot to <a href="https://github.com/rustwasm/walrus">walrus</a>, an excellent library
+				for manipulating WASM binaries in Rust.</p>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+					<li class=" tsd-kind-enum">
+						<a href="enums/elementkind.html" class="tsd-kind-icon">Element<wbr>Kind</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/externalkind.html" class="tsd-kind-icon">External<wbr>Kind</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/funcmode.html" class="tsd-kind-icon">Func<wbr>Mode</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/instrtype.html" class="tsd-kind-icon">Instr<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/numtype.html" class="tsd-kind-icon">Num<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/otherinstrtype.html" class="tsd-kind-icon">Other<wbr>Instr<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/reftype.html" class="tsd-kind-icon">Ref<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-enum">
+						<a href="enums/valueblocktype.html" class="tsd-kind-icon">Value<wbr>Block<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-class">
+						<a href="classes/buildererror.html" class="tsd-kind-icon">Builder<wbr>Error</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/code.html" class="tsd-kind-icon">Code</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/customsection.html" class="tsd-kind-icon">Custom<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/datacountsection.html" class="tsd-kind-icon">Data<wbr>Count<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/decoder.html" class="tsd-kind-icon">Decoder</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/encoder.html" class="tsd-kind-icon">Encoder</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/export.html" class="tsd-kind-icon">Export</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/func.html" class="tsd-kind-icon">Func</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/functype.html" class="tsd-kind-icon">Func<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/global.html" class="tsd-kind-icon">Global</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/globaltype.html" class="tsd-kind-icon">Global<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/import.html" class="tsd-kind-icon">Import</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/local.html" class="tsd-kind-icon">Local</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/module.html" class="tsd-kind-icon">Module</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/resizablelimits.html" class="tsd-kind-icon">Resizable<wbr>Limits</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/section.html" class="tsd-kind-icon">Section</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/sizeinfo.html" class="tsd-kind-icon">Size<wbr>Info</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/startsection.html" class="tsd-kind-icon">Start<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/tabletype.html" class="tsd-kind-icon">Table<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#blocktype" class="tsd-kind-icon">Block<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#codesection" class="tsd-kind-icon">Code<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#data" class="tsd-kind-icon">Data</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#datasection" class="tsd-kind-icon">Data<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#element" class="tsd-kind-icon">Element</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#elementsection" class="tsd-kind-icon">Element<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#exportsection" class="tsd-kind-icon">Export<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#expr" class="tsd-kind-icon">Expr</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#funcid" class="tsd-kind-icon">Func<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#functionsection" class="tsd-kind-icon">Function<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#globalsection" class="tsd-kind-icon">Global<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#importsection" class="tsd-kind-icon">Import<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#instruction" class="tsd-kind-icon">Instruction</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#localvariables" class="tsd-kind-icon">Local<wbr>Variables</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#memorysection" class="tsd-kind-icon">Memory<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#tablesection" class="tsd-kind-icon">Table<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#typesection" class="tsd-kind-icon">Type<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#valuetype" class="tsd-kind-icon">Value<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#section_names" class="tsd-kind-icon">SECTION_<wbr>NAMES</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#version" class="tsd-kind-icon">VERSION</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#addfunction" class="tsd-kind-icon">add<wbr>Function</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#addlocal" class="tsd-kind-icon">add<wbr>Local</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#buf2hex" class="tsd-kind-icon">buf2hex</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createencoder" class="tsd-kind-icon">create<wbr>Encoder</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createfunction" class="tsd-kind-icon">create<wbr>Function</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createmodule" class="tsd-kind-icon">create<wbr>Module</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeblocktype" class="tsd-kind-icon">decode<wbr>Block<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodebyte" class="tsd-kind-icon">decode<wbr>Byte</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodebytevector" class="tsd-kind-icon">decode<wbr>Byte<wbr>Vector</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodecode" class="tsd-kind-icon">decode<wbr>Code</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodedata" class="tsd-kind-icon">decode<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeelement" class="tsd-kind-icon">decode<wbr>Element</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeelementkind" class="tsd-kind-icon">decode<wbr>Element<wbr>Kind</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeexport" class="tsd-kind-icon">decode<wbr>Export</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeexpr" class="tsd-kind-icon">decode<wbr>Expr</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodefloat32" class="tsd-kind-icon">decode<wbr>Float32</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodefloat64" class="tsd-kind-icon">decode<wbr>Float64</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodefunctype" class="tsd-kind-icon">decode<wbr>Func<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeglobal" class="tsd-kind-icon">decode<wbr>Global</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeglobaltype" class="tsd-kind-icon">decode<wbr>Global<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeimport" class="tsd-kind-icon">decode<wbr>Import</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeinstruction" class="tsd-kind-icon">decode<wbr>Instruction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeleb128s" class="tsd-kind-icon">decodeLEB128S</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodeleb128u" class="tsd-kind-icon">decodeLEB128U</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodemodule" class="tsd-kind-icon">decode<wbr>Module</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodemodulepreamble" class="tsd-kind-icon">decode<wbr>Module<wbr>Preamble</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodereftype" class="tsd-kind-icon">decode<wbr>Ref<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decoderesizablelimits" class="tsd-kind-icon">decode<wbr>Resizable<wbr>Limits</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodesection" class="tsd-kind-icon">decode<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodestring" class="tsd-kind-icon">decode<wbr>String</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodetabletype" class="tsd-kind-icon">decode<wbr>Table<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#decodevaluetype" class="tsd-kind-icon">decode<wbr>Value<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#decodevector" class="tsd-kind-icon">decode<wbr>Vector</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeblocktype" class="tsd-kind-icon">encode<wbr>Block<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodebyte" class="tsd-kind-icon">encode<wbr>Byte</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodebytearray" class="tsd-kind-icon">encode<wbr>Byte<wbr>Array</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodecode" class="tsd-kind-icon">encode<wbr>Code</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodecodesection" class="tsd-kind-icon">encode<wbr>Code<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodedata" class="tsd-kind-icon">encode<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodedatacountsection" class="tsd-kind-icon">encode<wbr>Data<wbr>Count<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodedatasection" class="tsd-kind-icon">encode<wbr>Data<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeelement" class="tsd-kind-icon">encode<wbr>Element</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeelementsection" class="tsd-kind-icon">encode<wbr>Element<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeexport" class="tsd-kind-icon">encode<wbr>Export</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeexportsection" class="tsd-kind-icon">encode<wbr>Export<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeexpr" class="tsd-kind-icon">encode<wbr>Expr</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodefloat32" class="tsd-kind-icon">encode<wbr>Float32</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodefloat64" class="tsd-kind-icon">encode<wbr>Float64</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodefunctype" class="tsd-kind-icon">encode<wbr>Func<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodefunctionsection" class="tsd-kind-icon">encode<wbr>Function<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeglobal" class="tsd-kind-icon">encode<wbr>Global</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeglobalsection" class="tsd-kind-icon">encode<wbr>Global<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeglobaltype" class="tsd-kind-icon">encode<wbr>Global<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeimportentry" class="tsd-kind-icon">encode<wbr>Import<wbr>Entry</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeimportsection" class="tsd-kind-icon">encode<wbr>Import<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeinstruction" class="tsd-kind-icon">encode<wbr>Instruction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeleb128s" class="tsd-kind-icon">encodeLEB128S</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodeleb128u" class="tsd-kind-icon">encodeLEB128U</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodememorysection" class="tsd-kind-icon">encode<wbr>Memory<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodemodule" class="tsd-kind-icon">encode<wbr>Module</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodepreamble" class="tsd-kind-icon">encode<wbr>Preamble</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encoderesizablelimits" class="tsd-kind-icon">encode<wbr>Resizable<wbr>Limits</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#encodesection" class="tsd-kind-icon">encode<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodestartsection" class="tsd-kind-icon">encode<wbr>Start<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodestring" class="tsd-kind-icon">encode<wbr>String</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodetablesection" class="tsd-kind-icon">encode<wbr>Table<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodetabletype" class="tsd-kind-icon">encode<wbr>Table<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#encodetypesection" class="tsd-kind-icon">encode<wbr>Type<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#encodevector" class="tsd-kind-icon">encode<wbr>Vector</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#fromleb128s" class="tsd-kind-icon">fromLEB128S</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#fromleb128u" class="tsd-kind-icon">fromLEB128U</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getblocktypesize" class="tsd-kind-icon">get<wbr>Block<wbr>Type<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getcodesectionsize" class="tsd-kind-icon">get<wbr>Code<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getcodesize" class="tsd-kind-icon">get<wbr>Code<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getcustomsectionssize" class="tsd-kind-icon">get<wbr>Custom<wbr>Sections<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdatacountsection" class="tsd-kind-icon">get<wbr>Data<wbr>Count<wbr>Section</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdatasectionsize" class="tsd-kind-icon">get<wbr>Data<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdatasize" class="tsd-kind-icon">get<wbr>Data<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getelementsectionsize" class="tsd-kind-icon">get<wbr>Element<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getelementsize" class="tsd-kind-icon">get<wbr>Element<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getexportsectionsize" class="tsd-kind-icon">get<wbr>Export<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getexportsize" class="tsd-kind-icon">get<wbr>Export<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getexprsize" class="tsd-kind-icon">get<wbr>Expr<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getfunctypesize" class="tsd-kind-icon">get<wbr>Func<wbr>Type<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getfunctionsectionsize" class="tsd-kind-icon">get<wbr>Function<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getglobalsectionsize" class="tsd-kind-icon">get<wbr>Global<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getglobalsize" class="tsd-kind-icon">get<wbr>Global<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gethighestbit" class="tsd-kind-icon">get<wbr>Highest<wbr>Bit</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getimportentrysize" class="tsd-kind-icon">get<wbr>Import<wbr>Entry<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getimportsectionsize" class="tsd-kind-icon">get<wbr>Import<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getinstructionsize" class="tsd-kind-icon">get<wbr>Instruction<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getleb128ssize" class="tsd-kind-icon">getLEB128SSize</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getleb128usize" class="tsd-kind-icon">getLEB128USize</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getmemorysectionsize" class="tsd-kind-icon">get<wbr>Memory<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getmodulesize" class="tsd-kind-icon">get<wbr>Module<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getrandomint" class="tsd-kind-icon">get<wbr>Random<wbr>Int</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getrandomintarray" class="tsd-kind-icon">get<wbr>Random<wbr>Int<wbr>Array</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getrandomleb128u" class="tsd-kind-icon">get<wbr>RandomLEB128U</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getresizablelimitssize" class="tsd-kind-icon">get<wbr>Resizable<wbr>Limits<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getstartsectionsize" class="tsd-kind-icon">get<wbr>Start<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettablesectionsize" class="tsd-kind-icon">get<wbr>Table<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettabletypesize" class="tsd-kind-icon">get<wbr>Table<wbr>Type<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#gettypesectionsize" class="tsd-kind-icon">get<wbr>Type<wbr>Section<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#getvecsize" class="tsd-kind-icon">get<wbr>Vec<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#peekbyte" class="tsd-kind-icon">peek<wbr>Byte</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#printblocktype" class="tsd-kind-icon">print<wbr>Block<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#printheaptype" class="tsd-kind-icon">print<wbr>Heap<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#printinstrtype" class="tsd-kind-icon">print<wbr>Instr<wbr>Type</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#printinstruction" class="tsd-kind-icon">print<wbr>Instruction</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#toleb128s" class="tsd-kind-icon">toLEB128S</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#toleb128u" class="tsd-kind-icon">toLEB128U</a>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
