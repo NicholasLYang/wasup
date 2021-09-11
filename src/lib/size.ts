@@ -45,7 +45,7 @@ export function getFuncTypeSize(funcType: FuncType): number {
   );
 }
 
-function getResizeableLimitsSize(limits: ResizableLimits) {
+function getResizableLimitsSize(limits: ResizableLimits) {
   let limitsLen = 1 + getLEB128USize(limits.minimum);
   if (limits.maximum) {
     limitsLen += getLEB128USize(limits.maximum);
@@ -66,10 +66,10 @@ export function getImportEntrySize(importEntry: Import) {
       break;
     case ExternalKind.Table:
       // 1 for reftype
-      descLen += 1 + getResizeableLimitsSize(description.tableType.limits);
+      descLen += 1 + getResizableLimitsSize(description.tableType.limits);
       break;
     case ExternalKind.Memory:
-      descLen += getResizeableLimitsSize(description.memoryType);
+      descLen += getResizableLimitsSize(description.memoryType);
       break;
     case ExternalKind.Global:
       // 1 for ValueType and 1 for mutability
@@ -88,7 +88,7 @@ export function getImportEntrySize(importEntry: Import) {
 
 export function getTableTypeSize(tableType: TableType): number {
   // 1 for ref type
-  return 1 + getResizeableLimitsSize(tableType.limits);
+  return 1 + getResizableLimitsSize(tableType.limits);
 }
 
 function getGlobalSize(global: Global): number {
@@ -407,7 +407,7 @@ export function getTableSectionSize(tableSection: TableSection) {
  * @returns Size of memory section in bytes
  */
 export function getMemorySectionSize(memorySection: MemorySection) {
-  return getVecSize(memorySection.items, getResizeableLimitsSize);
+  return getVecSize(memorySection.items, getResizableLimitsSize);
 }
 
 /**
