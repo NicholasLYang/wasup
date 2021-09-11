@@ -9,11 +9,11 @@ export function getRandomInt(max: number) {
 
 // Get random integer in varuint32 range
 export function getRandomLEB128U() {
-  return getRandomInt(2_147_483_647)
+  return getRandomInt(2_147_483_647);
 }
 
 export function getRandomIntArray(len: number) {
-  const arr = []
+  const arr = [];
   for (let i = 0; i < len; i++) {
     arr.push(getRandomLEB128U());
   }
