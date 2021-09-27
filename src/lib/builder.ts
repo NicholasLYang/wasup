@@ -26,7 +26,7 @@ interface Func {
   mode: FuncMode;
   name?: string;
   locals: LocalVariables;
-  localCount: number;
+  localsCount: number;
   type: FuncType;
   code: Expr;
 }
@@ -109,6 +109,7 @@ export function addLocal(func: Func, type: ValueType): Local {
   }
 
   func.locals.push({ count: 1, type });
+  func.localsCount += 1;
 
-  return { index: func.locals.length - 1 };
+  return { index: func.localsCount - 1 };
 }
