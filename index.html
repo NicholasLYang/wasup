@@ -85,8 +85,15 @@ yarn <span class="hljs-keyword">add </span>wasup
 					and encoding the module object. For the most part it assumes the module is valid. As
 				of right now, wasup does not try to validate the module.</p>
 				<p><code>createModule</code> creates an empty module object for you to manipulate as you wish.</p>
-				<p><code>createFunction</code> creates a <code>Func</code> type which is a slightly higher level abstraction for functions.</p>
-				<p><code>addFunction</code> adds a <code>Func</code> to a module.</p>
+				<a href="#goals" id="goals" style="color: inherit; text-decoration: none;">
+					<h2>Goals</h2>
+				</a>
+				<p>Right now wasup is very bare bones. It provides a way to encode
+					a JavaScript representation of a WebAssembly module into a binary representation,
+				and it provides a way to decode a binary representation into a JavaScript representation.</p>
+				<p>In the future, I hope to add support for creating modules and validating them. I&#39;d also like
+					to add support for proposals like <a href="https://github.com/WebAssembly/memory64">memory64</a>,
+				<a href="https://github.com/WebAssembly/branch-hinting">branch hinting</a>, etc.</p>
 				<a href="#inspiration" id="inspiration" style="color: inherit; text-decoration: none;">
 					<h2>Inspiration</h2>
 				</a>
