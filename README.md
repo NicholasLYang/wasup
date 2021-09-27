@@ -25,9 +25,15 @@ of right now, wasup does not try to validate the module.
 
 `createModule` creates an empty module object for you to manipulate as you wish.
 
-`createFunction` creates a `Func` type which is a slightly higher level abstraction for functions.
+## Goals
 
-`addFunction` adds a `Func` to a module.
+Right now wasup is very bare bones. It provides a way to encode 
+a JavaScript representation of a WebAssembly module into a binary representation, 
+and it provides a way to decode a binary representation into a JavaScript representation.
+
+In the future, I hope to add support for creating modules and validating them. I'd also like
+to add support for proposals like [memory64](https://github.com/WebAssembly/memory64),
+[branch hinting](https://github.com/WebAssembly/branch-hinting), etc.
 
 ## Inspiration
 wasup owes a lot to [walrus](https://github.com/rustwasm/walrus), an excellent library
