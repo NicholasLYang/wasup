@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
 ### [0.0.5](https://github.com/NicholasLYang/wasup/compare/v0.0.4...v0.0.5) (2021-09-28)
+Fixed data count size encoding. 
 
 ### [0.0.4](https://github.com/NicholasLYang/wasup/compare/v0.0.3...v0.0.4) (2021-09-28)
 Put data count section in the right place
