@@ -25,6 +25,12 @@ of right now, wasup does not try to validate the module.
 
 `createModule` creates an empty module object for you to manipulate as you wish.
 
+There's also [API documentation](https://nicholaslyang.github.io/wasup/) and a [binary search example program](https://github.com/NicholasLYang/wasup/tree/master/examples/binary-search).
+
+If you want to know more about the structure of a WebAssembly module, check out the [specification](https://webassembly.github.io/spec/core/), 
+the [WASM reference manual](https://github.com/sunfishcode/wasm-reference-manual/blob/master/WebAssembly.md), and 
+[this blog post](https://horriblyunderqualified.com/posts/a-mere-mortals-guide-to-webassembly/) written by yours truly.
+
 ## Goals
 
 Right now wasup is very bare bones. It provides a way to encode 
