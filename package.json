@@ -1,13 +1,16 @@
 {
   "name": "wasup",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A code generator for WebAssembly",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
   "module": "build/module/index.js",
   "repository": "https://github.com/NicholasLYang/wasup",
   "license": "MIT",
-  "keywords": ["WebAssembly", "TypeScript"],
+  "keywords": [
+    "WebAssembly",
+    "TypeScript"
+  ],
   "scripts": {
     "build": "run-p build:*",
     "build:main": "tsc -p tsconfig.json",
