@@ -113,6 +113,19 @@ export function encodeModule(module: Module): Uint8Array {
   const encoder = createEncoder(module);
   encodePreamble(encoder);
 
+  for (const customSection of module.customSections) {
+    encodeByte(encoder, 0);
+    const nameBytes = encoder.textEncoder.encode(customSection.name);
+    const length =
+      getLEB128USize(nameBytes.length) +
+      nameBytes.length +
+      customSection.contents.length;
+    encodeLEB128U(encoder, length);
+    encodeLEB128U(encoder, nameBytes.length);
+    encodeByteArray(encoder, nameBytes);
+    encodeByteArray(encoder, customSection.contents);
+  }
+
   if (module.types.items.length > 0) {
     encodeTypeSection(encoder, module.types);
   }
@@ -149,28 +162,16 @@ export function encodeModule(module: Module): Uint8Array {
     encodeElementSection(encoder, module.elements);
   }
 
+  if (module.dataCount) {
+    encodeDataCountSection(encoder, module.dataCount);
+  }
+
   if (module.code.items.length > 0) {
     encodeCodeSection(encoder, module.code);
   }
 
   if (module.data.items.length > 0) {
     encodeDataSection(encoder, module.data);
-  }
-
-  if (module.dataCount) {
-    encodeDataCountSection(encoder, module.dataCount);
-  }
-  for (const customSection of module.customSections) {
-    encodeByte(encoder, 0);
-    const nameBytes = encoder.textEncoder.encode(customSection.name);
-    const length =
-      getLEB128USize(nameBytes.length) +
-      nameBytes.length +
-      customSection.contents.length;
-    encodeLEB128U(encoder, length);
-    encodeLEB128U(encoder, nameBytes.length);
-    encodeByteArray(encoder, nameBytes);
-    encodeByteArray(encoder, customSection.contents);
   }
 
   return encoder.buffer;

@@ -7,7 +7,7 @@
   "module": "build/module/index.js",
   "repository": "https://github.com/NicholasLYang/wasup",
   "license": "MIT",
-  "keywords": [],
+  "keywords": ["WebAssembly", "TypeScript"],
   "scripts": {
     "build": "run-p build:*",
     "build:main": "tsc -p tsconfig.json",

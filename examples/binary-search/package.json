@@ -8,7 +8,8 @@
   },
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
-    "wasup": "^0.0.1"
+    "@types/node": "^16.10.1"
   }
 }
