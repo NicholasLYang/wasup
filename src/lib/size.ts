@@ -486,9 +486,8 @@ export function getDataSectionSize(dataSection: DataSection) {
  * @param dataCountSection - data count section.
  * @returns Size of data count section in bytes
  */
-export function getDataCountSection(dataCountSection: DataCountSection) {
-  const dataCountSize = getLEB128USize(dataCountSection.dataCount);
-  return 1 + getLEB128USize(dataCountSize) + dataCountSize;
+export function getDataCountSection(_dataCountSection: DataCountSection) {
+  return 1;
 }
 
 /**

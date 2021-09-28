@@ -10,6 +10,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@types/node": "^16.10.1"
+    "@types/node": "^16.10.1",
+    "wasup": "^0.0.4"
   }
 }

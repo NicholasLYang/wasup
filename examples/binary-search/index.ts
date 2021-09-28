@@ -1,27 +1,32 @@
 import {
-  createModule,
   encodeModule,
   Expr,
   InstrType,
   NumType,
   ValueBlockType,
-  ExternalKind
+  ExternalKind, createModule
 } from 'wasup';
-import { promises } from "fs"
 
 const module = createModule();
 // Declare binarySearch's type signature
+// #0 is arr
+// #1 is n
+// #2 is start
+// #3 is end
 module.types.items.push({ paramTypes: [NumType.i32, NumType.i32, NumType.i32, NumType.i32], returnTypes: [NumType.i32] });
 // Declare binarySearch function
 module.functions.items.push(0);
 // Declare the memory
 module.memories.items.push({ minimum: 1 });
 // Declare array as const data
-module.data.items.push({ id: 0, offsetExpr: [[InstrType.I32Const, 0]], bytes: new Uint8Array([-4, -2, 0, 2, 8, 13, 21, 54])});
+const array = new Uint32Array([-4, -2, 0, 2, 8, 13, 21, 54]);
+module.data.items.push({ id: 0, offsetExpr: [[InstrType.I32Const, 0]], bytes: new Uint8Array(array.buffer) });
 // Add data count
 module.dataCount = { id: 12, dataCount: 1 };
+module.exports.items.push({ name: "binarySearch", kind: ExternalKind.Function, index: 0 });
 
-const binarySearchInstructions: Expr = [[InstrType.LocalGet, 2],
+const binarySearchInstructions: Expr = [
+  [InstrType.LocalGet, 2],
   [InstrType.LocalGet, 3],
   [InstrType.I32Add],
   [InstrType.I32Const, 2],
@@ -65,11 +70,15 @@ const binarySearchInstructions: Expr = [[InstrType.LocalGet, 2],
   ]]];
 
 module.code.items.push({ locals: [{ count: 2, type: NumType.i32 }], code: binarySearchInstructions });
-module.exports.items.push({ name: "binarySearch", kind: ExternalKind.Function, index: 0 })
-promises.writeFile("out.wasm", encodeModule(module));
-// const { instance } = await WebAssembly.instantiate();
-//
-// const { binarySearch } = instance.exports;
-//
-// // @ts-ignore
-// console.log(binarySearch(0, -20, 0, 7));
+
+async function main() {
+  const { instance } = await WebAssembly.instantiate(encodeModule(module));
+
+  const { binarySearch } = instance.exports;
+
+  // @ts-ignore
+  console.log(binarySearch(0, 8, 0, 7));
+}
+
+main();
+
