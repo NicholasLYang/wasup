@@ -1,6 +1,6 @@
 {
   "name": "wasup",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A code generator for WebAssembly",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
