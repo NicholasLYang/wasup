@@ -250,9 +250,9 @@ export function printInstruction(instr: Instruction): string {
         .join('\n')}end)`;
     }
     case InstrType.If: {
-      const out = `(${instrTypeString} ${printBlockType(
-        instr[1]
-      )} ${instr[2].map(printInstruction).join('\n')}`;
+      const out = `(${instrTypeString} ${printBlockType(instr[1])} ${instr[2]
+        .map(printInstruction)
+        .join('\n')}`;
       if (instr[3]) {
         return `${out} else ${instr[3].map(printInstruction).join('\n')} end)`;
       }
