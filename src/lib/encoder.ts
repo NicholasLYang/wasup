@@ -102,7 +102,7 @@ function encodeFloat64(encoder: Encoder, float: number) {
 function encodeByte(encoder: Encoder, byte: number) {
   if (encoder.index >= encoder.buffer.length) {
     throw new Error(
-      `Internal: Buffer is not big enough, tried to encode ${byte} ${encoder.buffer}`
+      `Internal: Buffer is not big enough, tried to encode ${byte} ${encoder.buffer}`,
     );
   }
   encoder.buffer[encoder.index] = byte;
@@ -177,11 +177,15 @@ export function encodeModule(module: Module): Uint8Array {
   return encoder.buffer;
 }
 
-function encodeSection<T extends Section<Id, Item>, Id extends number, Item>(
+function encodeSection<
+  T extends Section<Id, Item>,
+  Id extends number,
+  Item,
+>(
   encoder: Encoder,
   section: T,
   sectionSize: number,
-  encodeFn: (encoder: Encoder, item: Item) => void
+  encodeFn: (encoder: Encoder, item: Item) => void,
 ) {
   encodeByte(encoder, section.id);
   encodeLEB128U(encoder, sectionSize);
@@ -196,85 +200,85 @@ export function encodeTypeSection(encoder: Encoder, typeSection: TypeSection) {
     encoder,
     typeSection,
     encoder.sizeInfo.sections.types,
-    encodeFuncType
+    encodeFuncType,
   );
 }
 
 export function encodeImportSection(
   encoder: Encoder,
-  importSection: ImportSection
+  importSection: ImportSection,
 ) {
   encodeSection(
     encoder,
     importSection,
     encoder.sizeInfo.sections.imports,
-    encodeImportEntry
+    encodeImportEntry,
   );
 }
 
 export function encodeFunctionSection(
   encoder: Encoder,
-  functionSection: FunctionSection
+  functionSection: FunctionSection,
 ) {
   encodeSection(
     encoder,
     functionSection,
     encoder.sizeInfo.sections.functions,
-    encodeLEB128U
+    encodeLEB128U,
   );
 }
 
 export function encodeTableSection(
   encoder: Encoder,
-  tableSection: TableSection
+  tableSection: TableSection,
 ) {
   encodeSection(
     encoder,
     tableSection,
     encoder.sizeInfo.sections.tables,
-    encodeTableType
+    encodeTableType,
   );
 }
 
 export function encodeMemorySection(
   encoder: Encoder,
-  memorySection: MemorySection
+  memorySection: MemorySection,
 ) {
   return encodeSection(
     encoder,
     memorySection,
     encoder.sizeInfo.sections.memories,
-    encodeResizableLimits
+    encodeResizableLimits,
   );
 }
 
 export function encodeGlobalSection(
   encoder: Encoder,
-  globalSection: GlobalSection
+  globalSection: GlobalSection,
 ) {
   return encodeSection(
     encoder,
     globalSection,
     encoder.sizeInfo.sections.globals,
-    encodeGlobal
+    encodeGlobal,
   );
 }
 
 export function encodeExportSection(
   encoder: Encoder,
-  exportSection: ExportSection
+  exportSection: ExportSection,
 ) {
   return encodeSection(
     encoder,
     exportSection,
     encoder.sizeInfo.sections.exports,
-    encodeExport
+    encodeExport,
   );
 }
 
 export function encodeStartSection(
   encoder: Encoder,
-  startSection: StartSection
+  startSection: StartSection,
 ) {
   encodeByte(encoder, startSection.id);
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -284,13 +288,13 @@ export function encodeStartSection(
 
 export function encodeElementSection(
   encoder: Encoder,
-  elementSection: ElementSection
+  elementSection: ElementSection,
 ) {
   return encodeSection(
     encoder,
     elementSection,
     encoder.sizeInfo.sections.elements,
-    encodeElement
+    encodeElement,
   );
 }
 
@@ -299,7 +303,7 @@ export function encodeCodeSection(encoder: Encoder, codeSection: CodeSection) {
     encoder,
     codeSection,
     encoder.sizeInfo.sections.code,
-    encodeCode
+    encodeCode,
   );
 }
 
@@ -308,13 +312,13 @@ export function encodeDataSection(encoder: Encoder, dataSection: DataSection) {
     encoder,
     dataSection,
     encoder.sizeInfo.sections.data,
-    encodeData
+    encodeData,
   );
 }
 
 export function encodeDataCountSection(
   encoder: Encoder,
-  dataCountSection: DataCountSection
+  dataCountSection: DataCountSection,
 ) {
   encodeByte(encoder, dataCountSection.id);
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -344,10 +348,14 @@ function encodeCode(encoder: Encoder, code: Code) {
   const codeBodySize = getCodeSize(code);
 
   encodeLEB128U(encoder, codeBodySize);
-  encodeVector(encoder, code.locals, (encoder, { type, count }) => {
-    encodeLEB128U(encoder, count);
-    encodeByte(encoder, type);
-  });
+  encodeVector(
+    encoder,
+    code.locals,
+    (encoder, { type, count }) => {
+      encodeLEB128U(encoder, count);
+      encodeByte(encoder, type);
+    },
+  );
 
   encodeExpr(encoder, code.code);
 }
@@ -457,7 +465,7 @@ function encodeTableType(encoder: Encoder, tableType: TableType) {
 
 function encodeResizableLimits(
   encoder: Encoder,
-  resizableLimits: ResizableLimits
+  resizableLimits: ResizableLimits,
 ) {
   if (resizableLimits.maximum) {
     encodeByte(encoder, 0x01);
@@ -476,11 +484,9 @@ function encodeExpr(encoder: Encoder, expr: Expr) {
   encodeByte(encoder, 0x0b);
 }
 
-function encodeVector<T>(
-  encoder: Encoder,
-  vec: T[],
-  encodeFn: (encoder: Encoder, e: T) => void
-) {
+function encodeVector<
+  T,
+>(encoder: Encoder, vec: T[], encodeFn: (encoder: Encoder, e: T) => void) {
   encodeLEB128U(encoder, vec.length);
   for (const elem of vec) {
     encodeFn(encoder, elem);
