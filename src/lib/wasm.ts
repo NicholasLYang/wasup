@@ -87,21 +87,21 @@ export interface Import {
   field: string;
   description:
     | {
-        kind: ExternalKind.Function;
-        typeIndex: number;
-      }
+      kind: ExternalKind.Function;
+      typeIndex: number;
+    }
     | {
-        kind: ExternalKind.Table;
-        tableType: TableType;
-      }
+      kind: ExternalKind.Table;
+      tableType: TableType;
+    }
     | {
-        kind: ExternalKind.Memory;
-        memoryType: ResizableLimits;
-      }
+      kind: ExternalKind.Memory;
+      memoryType: ResizableLimits;
+    }
     | {
-        kind: ExternalKind.Global;
-        globalType: GlobalType;
-      };
+      kind: ExternalKind.Global;
+      globalType: GlobalType;
+    };
 }
 
 export interface TableType {
@@ -124,55 +124,53 @@ export interface Global {
   initExpr: Expr;
 }
 
-export enum ElementKind {
-  FuncRef = 0x00,
-}
+export enum ElementKind { FuncRef = 0x00 }
 
 export type Element =
   | {
-      id: 0x00; // Active mode
-      offsetExpr: Expr;
-      functionIds: FuncId[];
-    }
+    id: 0x00; // Active mode
+    offsetExpr: Expr;
+    functionIds: FuncId[];
+  }
   | {
-      id: 0x01; // Passive
-      kind: ElementKind;
-      functionIds: FuncId[];
-    }
+    id: 0x01; // Passive
+    kind: ElementKind;
+    functionIds: FuncId[];
+  }
   | {
-      id: 0x02; // Active
-      tableIndex: number;
-      offsetExpr: Expr;
-      kind: ElementKind;
-      functionIds: FuncId[];
-    }
+    id: 0x02; // Active
+    tableIndex: number;
+    offsetExpr: Expr;
+    kind: ElementKind;
+    functionIds: FuncId[];
+  }
   | {
-      id: 0x03; // Declarative
-      kind: ElementKind;
-      functionIds: FuncId[];
-    }
+    id: 0x03; // Declarative
+    kind: ElementKind;
+    functionIds: FuncId[];
+  }
   | {
-      id: 0x04; // Active
-      offsetExpr: Expr;
-      initExprs: Expr[];
-    }
+    id: 0x04; // Active
+    offsetExpr: Expr;
+    initExprs: Expr[];
+  }
   | {
-      id: 0x05; // Passive
-      refType: RefType;
-      initExprs: Expr[];
-    }
+    id: 0x05; // Passive
+    refType: RefType;
+    initExprs: Expr[];
+  }
   | {
-      id: 0x06; // Active
-      tableIndex: number;
-      offsetExpr: Expr;
-      refType: RefType;
-      initExprs: Expr[];
-    }
+    id: 0x06; // Active
+    tableIndex: number;
+    offsetExpr: Expr;
+    refType: RefType;
+    initExprs: Expr[];
+  }
   | {
-      id: 0x07; // Declarative
-      refType: RefType;
-      initExprs: Expr[];
-    };
+    id: 0x07; // Declarative
+    refType: RefType;
+    initExprs: Expr[];
+  };
 
 export type LocalVariables = { count: number; type: ValueType }[];
 
@@ -183,20 +181,20 @@ export interface Code {
 
 export type Data =
   | {
-      id: 0x00;
-      offsetExpr: Expr;
-      bytes: Uint8Array;
-    }
+    id: 0x00;
+    offsetExpr: Expr;
+    bytes: Uint8Array;
+  }
   | {
-      id: 0x01;
-      bytes: Uint8Array;
-    }
+    id: 0x01;
+    bytes: Uint8Array;
+  }
   | {
-      id: 0x02;
-      memoryIndex: number;
-      offsetExpr: Expr;
-      bytes: Uint8Array;
-    };
+    id: 0x02;
+    memoryIndex: number;
+    offsetExpr: Expr;
+    bytes: Uint8Array;
+  };
 
 export interface Export {
   name: string;

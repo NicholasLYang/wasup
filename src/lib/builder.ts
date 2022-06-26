@@ -82,7 +82,7 @@ export function createModule(): Module {
 export function addFunction(module: Module, func: Func): Module {
   module.types.items.push(func.type);
   module.functions.items.push(module.types.items.length - 1);
-  module.code.items.push({ locals: func.locals, code: [...func.code] });
+  module.code.items.push({ locals: func.locals, code: [...func.code] },);
 
   if (func.name) {
     // This works if we don't reuse type signatures. If we do, then this
@@ -93,7 +93,7 @@ export function addFunction(module: Module, func: Func): Module {
       name: func.name,
       index: funcIndex,
       kind: ExternalKind.Function,
-    });
+    },);
   }
 
   func.mode = FuncMode.NotActive;
@@ -104,11 +104,11 @@ export function addFunction(module: Module, func: Func): Module {
 export function addLocal(func: Func, type: ValueType): Local {
   if (func.mode === FuncMode.NotActive) {
     throw new BuilderError(
-      'Cannot add local to function that is no longer active'
+      'Cannot add local to function that is no longer active',
     );
   }
 
-  func.locals.push({ count: 1, type });
+  func.locals.push({ count: 1, type },);
   func.localsCount += 1;
 
   return { index: func.localsCount - 1 };
